@@ -1,9 +1,12 @@
 # barbarossa — docker compose
-# Three-phase: CHARLIE (collect) + OSCAR (operate) + PAPA (persist)
+# CHARLIE (collect) + OSCAR (operate) + PAPA (persist)
+# 4GB VPS — todos rodam simultaneamente
 #
-# Internal network: barbarossa-net
-#   charlie ↔ hermes  (via SSH, internal port 22)
-#   host    → charlie (via SSH, mapped port 2222)
+# Rede interna: barbarossa-net
+#   charlie ↔ hermes (SSH, porta 22)
+#   oscar   ↔ hermes (SSH, porta 22)
+#   papa    ↔ hermes (SSH, porta 22)
+#   host    → charlie (SSH, porta 2222)
 #   Telegram → hermes (gateway)
 
 services:
@@ -25,17 +28,46 @@ services:
     networks:
       - barbarossa-net
 
+  oscar:
+    build:
+      context: .
+      dockerfile: workers/oscar/Dockerfile
+    container_name: oscar
+    hostname: oscar
+    restart: unless-stopped
+    volumes:
+      - ./worker/ssh-keys/authorized_keys:/ssh-keys/authorized_keys:ro
+      - oscar-data:/root/output
+    environment:
+      - TZ=America/Sao_Paulo
+    networks:
+      - barbarossa-net
+
+  papa:
+    build:
+      context: .
+      dockerfile: workers/papa/Dockerfile
+    container_name: papa
+    hostname: papa
+    restart: unless-stopped
+    volumes:
+      - ./worker/ssh-keys/authorized_keys:/ssh-keys/authorized_keys:ro
+      - papa-data:/root/output
+    environment:
+      - TZ=America/Sao_Paulo
+    networks:
+      - barbarossa-net
+
   hermes:
     image: nousresearch/hermes-agent:latest
-    # Para build local, troque por:
-    # build:
-    #   context: ./hermes-agent
     container_name: hermes
     hostname: hermes
     restart: unless-stopped
     command: gateway run
     depends_on:
       - charlie
+      - oscar
+      - papa
     ports:
       - "127.0.0.1:9119:9119"
     volumes:
@@ -62,4 +94,6 @@ networks:
 
 volumes:
   charlie-data:
+  oscar-data:
+  papa-data:
   hermes-data:

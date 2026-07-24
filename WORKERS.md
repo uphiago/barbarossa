@@ -38,12 +38,6 @@ Anonymous. All outbound through Tor. Circuit identity changes. For anything wher
 
 Single key, Docker DNS, no IPs.
 
-```bash
-ssh root@charlie
-ssh root@oscar
-ssh root@papa
-ssh root@papa "torsocks curl https://ifconfig.me"
-```
 
 ## Lifecycle
 
@@ -53,15 +47,11 @@ ssh root@papa "torsocks curl https://ifconfig.me"
 | oscar   | Keep alive | ~1.2GB | Artifacts, compiled exploits, notes |
 | papa    | Disposable | ~150MB | Tor state ephemeral, circuit changes on restart |
 
-## Deployment
+
+
+
+## Startup
 
 ```bash
-# VPS 4GB (mínimo viável):
-docker compose up -d                    # charlie + hermes
-
-# Workstation 8GB+ (cluster completo):
-docker compose -f docker-compose.yml -f docker-compose.workers.yml --profile full up -d
-
-# Ver status:
-docker compose ps
+docker compose up -d   # todos os workers + hermes
 ```
