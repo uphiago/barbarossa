@@ -43,7 +43,7 @@ if grep -q "^BARBAROSSA_SSH_KEY=" .env 2>/dev/null; then
     KEY_PATH="$(grep "^BARBAROSSA_SSH_KEY=" .env | cut -d= -f2-)"
     KEY_PATH="${KEY_PATH/#\~/$HOME}"
 else
-    KEY_PATH="$HOME/.ssh/barbarossa_key"
+    KEY_PATH="$HOME/.ssh/key"
     echo "BARBAROSSA_SSH_KEY=$KEY_PATH" >> .env
 fi
 
@@ -62,7 +62,7 @@ chmod 600 charlie/ssh-keys/authorized_keys
 echo "[+] Worker authorized_keys ready"
 
 # ─── 5. Handle running containers ───
-RUNNING=$(docker ps --filter name=barbarossa -q 2>/dev/null | wc -l)
+RUNNING=$(docker ps --filter name=hermes -q 2>/dev/null | wc -l)
 if [ "$RUNNING" -gt 0 ]; then
     echo "[+] Stopping existing containers..."
     docker compose down 2>/dev/null || true
@@ -93,11 +93,11 @@ done
 # ─── 9. Inject SSH key + config into Hermes ───
 echo "[+] Setting up SSH..."
 docker exec hermes mkdir -p /opt/data/.ssh
-if ! docker exec hermes test -f /opt/data/ssh/barbarossa_key 2>/dev/null; then
+if ! docker exec hermes test -f /opt/data/ssh/key 2>/dev/null; then
     docker exec hermes mkdir -p /opt/data/ssh
-    docker cp "$KEY_PATH" hermes:/opt/data/ssh/barbarossa_key
+    docker cp "$KEY_PATH" hermes:/opt/data/ssh/key
 fi
-docker exec -i hermes sh -c 'cat > /opt/data/.ssh/config && chown -R hermes:hermes /opt/data/.ssh && chmod 600 /opt/data/ssh/barbarossa_key' << 'SSHEOF'
+docker exec -i hermes sh -c 'cat > /opt/data/.ssh/config && chown -R hermes:hermes /opt/data/.ssh && chmod 600 /opt/data/ssh/key' << 'SSHEOF'
 Host charlie
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
@@ -120,7 +120,7 @@ echo "[+] Configuring model: $HERMES_PROVIDER / $HERMES_MODEL"
 docker exec hermes hermes config set model.provider "$HERMES_PROVIDER"
 docker exec hermes hermes config set model.name "$HERMES_MODEL"
 docker exec hermes hermes config set model.default "$HERMES_MODEL"
-docker exec hermes hermes config set terminal.ssh.key /opt/data/ssh/barbarossa_key
+docker exec hermes hermes config set terminal.ssh.key /opt/data/ssh/key
 docker exec hermes hermes config set agent.environment_hint "Worker container (SSH from Hermes). Hermes home mounted at /hermes/ (read/write via terminal). NEVER use write_file or patch on /hermes/ or /root/.hermes/ — always use terminal: cat > /hermes/path << 'EOF'. After writing: chown -R hermes:hermes /hermes/. Existing skills at /hermes/skills/ (recon/, meta/, chains/, auth/, infra/). AGENTS.md at /hermes/AGENTS.md. Recon reports at /root/output/recon_us/. Tools: nmap, masscan, subfinder, httpx, dnsx, nuclei, ffuf, amass, naabu, katana, dig, curl, python3."
 
 echo "[+] Tuning limits for 1M context..."
@@ -149,7 +149,7 @@ echo "[+] Health check: SSH Hermes → Worker..."
 HEALTH_OK=false
 for attempt in $(seq 1 10); do
     if docker exec hermes su -s /bin/sh hermes -c \
-        "ssh -i /opt/data/ssh/barbarossa_key -o StrictHostKeyChecking=no -o ConnectTimeout=3 root@charlie 'echo OK'" 2>&1 | grep -q "^OK"; then
+        "ssh -i /opt/data/ssh/key -o StrictHostKeyChecking=no -o ConnectTimeout=3 root@charlie 'echo OK'" 2>&1 | grep -q "^OK"; then
         echo "    ✅ SSH healthy (attempt $attempt)"
         HEALTH_OK=true
         break
