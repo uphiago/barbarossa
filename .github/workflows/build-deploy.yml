@@ -119,11 +119,14 @@ jobs:
               curl -fsSL https://get.docker.com | sudo sh
               sudo usermod -aG docker $USER
             fi
-            cd ~/barbarossa || { git clone https://github.com/uphiago/barbarossa.git ~/barbarossa && cd ~/barbarossa; }
+            if [ ! -d ~/barbarossa ]; then
+              git clone git@github.com:uphiago/barbarossa.git ~/barbarossa
+            fi
+            cd ~/barbarossa
             git pull
             DOCKER="docker"
             docker ps >/dev/null 2>&1 || DOCKER="sudo docker"
             echo "${{ secrets.GHCR_PAT }}" | $DOCKER login ghcr.io -u ${{ github.actor }} --password-stdin
-            $DOCKER compose pull charlie oscar papa
+            $DOCKER compose pull charlie oscar papa 2>/dev/null || true
             $DOCKER compose up -d --remove-orphans
             $DOCKER image prune -f
