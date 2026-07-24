@@ -2,15 +2,16 @@
 # CHARLIE (collect) + OSCAR (operate) + PAPA (persist)
 # 4GB VPS — todos rodam simultaneamente
 #
+# Local dev:   docker compose up -d --build
+# VPS deploy:  docker compose pull && docker compose up -d
+#
 # Rede interna: barbarossa-net
-#   charlie ↔ hermes (SSH, porta 22)
-#   oscar   ↔ hermes (SSH, porta 22)
-#   papa    ↔ hermes (SSH, porta 22)
-#   host    → charlie (SSH, porta 2222)
-#   Telegram → hermes (gateway)
+#   charlie ↔ hermes (SSH)  |  oscar ↔ hermes (SSH)  |  papa ↔ hermes (SSH)
+#   host → charlie (SSH, :2222)  |  Telegram → hermes (gateway)
 
 services:
   charlie:
+    image: ghcr.io/uphiago/barbarossa-charlie:latest
     build:
       context: .
       dockerfile: workers/charlie/Dockerfile
@@ -29,6 +30,7 @@ services:
       - barbarossa-net
 
   oscar:
+    image: ghcr.io/uphiago/barbarossa-oscar:latest
     build:
       context: .
       dockerfile: workers/oscar/Dockerfile
@@ -44,6 +46,7 @@ services:
       - barbarossa-net
 
   papa:
+    image: ghcr.io/uphiago/barbarossa-papa:latest
     build:
       context: .
       dockerfile: workers/papa/Dockerfile
