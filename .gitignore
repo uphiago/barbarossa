@@ -1,0 +1,10 @@
+# Secrets
+.env
+worker/ssh-keys/
+
+# Logs
+*.log
+
+# Editor
+*.swp
+*~

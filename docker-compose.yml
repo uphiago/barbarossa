@@ -1,0 +1,72 @@
+# agentiko — docker compose
+# Two services: worker (tools + SSH) and hermes (agent + gateway)
+#
+# Internal network: agentiko-net
+#   worker  ↔  hermes  (via SSH, internal port 22)
+#   host    →  worker  (via SSH, mapped port 2222)
+#   Telegram → hermes  (gateway)
+#
+
+services:
+  # ─── Worker: recon tools + SSH server ───
+  worker:
+    build:
+      context: ./worker
+    container_name: agentiko-worker
+    hostname: agentiko-worker
+    restart: unless-stopped
+    ports:
+      - "2222:22"                           # SSH from your machine
+    volumes:
+      - ./worker/ssh-keys/authorized_keys:/ssh-keys/authorized_keys:ro
+      - worker-data:/root                   # persist output, tools, etc
+      - hermes-data:/hermes                 # Hermes home (skills, config, AGENTS.md)
+    environment:
+      - TZ=America/Sao_Paulo
+    networks:
+      - agentiko-net
+
+  # ─── Hermes: agent + Telegram gateway ───
+  hermes:
+    build:
+      context: ./hermes-agent               # official Hermes Dockerfile
+    container_name: agentiko-hermes
+    hostname: agentiko-hermes
+    restart: unless-stopped
+    command: gateway run                     # start gateway, not CLI
+    depends_on:
+      - worker
+    ports:
+      - "127.0.0.1:9119:9119"               # dashboard (localhost only, tunnel via SSH)
+    # - "127.0.0.1:8642:8642"               # API server (localhost only, tunnel via SSH)
+    volumes:
+      - hermes-data:/opt/data               # config, .env, sessions, skills
+      - ./sync-recon-skills.sh:/etc/cont-init.d/03-sync-recon-skills:ro  # sync skills from GitHub on every boot
+    env_file:
+      - .env                                 # API keys + Telegram
+    environment:
+      - TZ=America/Sao_Paulo
+      - TERMINAL_ENV=ssh
+      - TERMINAL_SSH_HOST=worker
+      - TERMINAL_SSH_PORT=22
+      - TERMINAL_SSH_USER=root
+      - TERMINAL_SSH_KEY=/opt/data/ssh/agentiko_key
+      - HERMES_DASHBOARD=1
+      - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=${DASHBOARD_USER:-admin}
+      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${DASHBOARD_PASS:-agentiko}
+      - HERMES_DASHBOARD_BASIC_AUTH_SECRET=${DASHBOARD_SECRET:-agentiko-dashboard-secret-change-me}
+      - SKILLS_REPO=https://github.com/uphiago/recon-skills.git
+      # API server (uncomment to enable):
+      # - API_SERVER_ENABLED=true
+      # - API_SERVER_HOST=0.0.0.0
+      # - API_SERVER_KEY=${API_SERVER_KEY}
+    networks:
+      - agentiko-net
+
+networks:
+  agentiko-net:
+    driver: bridge
+
+volumes:
+  worker-data:
+  hermes-data:
