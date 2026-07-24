@@ -2,7 +2,7 @@
 
 **Multi-worker agent cluster for autonomous offensive security operations.**
 
-A two-container design (agent + workers) where the agent thinks and workers execute — each with its own toolset and network profile.
+Offensive security agent with specialized workers — recon, RE, and anonymous scanning via Tor.
 
 ```
 Telegram → barbarossa-hermes → ├─ worker (recon: nmap, subfinder, nuclei, ffuf...)

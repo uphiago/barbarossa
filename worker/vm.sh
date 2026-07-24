@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# vm — CLI wrapper to interact with the agentiko worker
+# vm — CLI wrapper to interact with the barbarossa worker
 # Usage: vm <command> [args]
 
-SSH_HOST="${VM_HOST:-agentiko-worker}"
+SSH_HOST="${VM_HOST:-barbarossa-worker}"
 SSH_PORT="${VM_PORT:-2222}"
 SSH_USER="${VM_USER:-root}"
-SSH_KEY="${VM_KEY:-$HOME/.ssh/agentiko_key}"
-TMUX_SESSION="agentiko"
+SSH_KEY="${VM_KEY:-$HOME/.ssh/barbarossa_key}"
+TMUX_SESSION="barbarossa"
 SSH_ARGS="-o StrictHostKeyChecking=no"
 [[ -n "$SSH_KEY" && -f "$SSH_KEY" ]] && SSH_ARGS="$SSH_ARGS -i $SSH_KEY"
 
