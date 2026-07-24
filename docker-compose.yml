@@ -19,7 +19,7 @@ services:
     hostname: charlie
     restart: unless-stopped
     ports:
-      - "2222:22"
+      - "127.0.0.1:2222:22"
     volumes:
       - ./worker/ssh-keys/authorized_keys:/ssh-keys/authorized_keys:ro
       - charlie-data:/root

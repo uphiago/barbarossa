@@ -40,7 +40,7 @@ file, socat, jq, full Python with all libs
 Alpine. All outbound through Tor. Disposable — circuit changes on restart.
 
 ```
-nmap, python3, curl, subfinder, Tor SOCKS5 on :9050
+nmap, python3, curl, tor, torsocks (SOCKS5 on :9050)
 ```
 
 ## Flow
