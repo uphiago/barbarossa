@@ -1,23 +1,21 @@
-# barbarossa + extra workers — integration compose
+# Barbarossa — extra workers
 #
-# Adiciona worker-heavy e worker-tor ao setup barbarossa existente.
-# O worker original (recon) continua sendo o principal, usado pelo hermes.
-# Heavy e Tor sao para uso manual ou via SSH direto.
+# Adiciona worker-heavy e worker-tor ao cluster.
+# O worker principal ja esta no docker-compose.yml.
+# Heavy e Tor sao para uso especializado.
 #
 # Uso:
-#   docker compose -f docker-compose.yml -f docker-compose.workers.yml up -d
-#   ssh -i ~/.ssh/barbarossa_key root@worker-heavy
-#   ssh -i ~/.ssh/barbarossa_key root@worker-tor
-#
-# Tor SOCKS5 disponivel em worker-tor:9050 (precisa de VPS com acesso a rede Tor)
+#   docker compose -f docker-compose.yml -f docker-compose.workers.yml --profile full up -d
+#   ssh -i ~/.ssh/key root@worker-heavy
+#   ssh -i ~/.ssh/key root@worker-tor
 
 services:
   worker-heavy:
     build:
-      context: ../../red
-      dockerfile: infra/images/Dockerfile.worker-heavy
-    container_name: barbarossa-worker-heavy
-    hostname: barbarossa-worker-heavy
+      context: .
+      dockerfile: workers/heavy/Dockerfile
+    container_name: worker-heavy
+    hostname: worker-heavy
     restart: unless-stopped
     volumes:
       - ./worker/ssh-keys/authorized_keys:/ssh-keys/authorized_keys:ro
@@ -31,10 +29,10 @@ services:
 
   worker-tor:
     build:
-      context: ../../red
-      dockerfile: infra/images/Dockerfile.worker-tor
-    container_name: barbarossa-worker-tor
-    hostname: barbarossa-worker-tor
+      context: .
+      dockerfile: workers/tor/Dockerfile
+    container_name: worker-tor
+    hostname: worker-tor
     restart: unless-stopped
     volumes:
       - ./worker/ssh-keys/authorized_keys:/ssh-keys/authorized_keys:ro

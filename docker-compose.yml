@@ -12,8 +12,8 @@ services:
   worker:
     build:
       context: ./worker
-    container_name: barbarossa-worker
-    hostname: barbarossa-worker
+    container_name: worker
+    hostname: worker
     restart: unless-stopped
     ports:
       - "2222:22"                           # SSH from your machine
@@ -30,8 +30,8 @@ services:
   hermes:
     build:
       context: ./hermes-agent               # official Hermes Dockerfile
-    container_name: barbarossa-hermes
-    hostname: barbarossa-hermes
+    container_name: hermes
+    hostname: hermes
     restart: unless-stopped
     command: gateway run                     # start gateway, not CLI
     depends_on:
