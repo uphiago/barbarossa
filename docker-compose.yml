@@ -1,17 +1,16 @@
 # barbarossa — docker compose
-# Three-phase operation: CHARLIE (collect) + OSCAR (operate) + PAPA (persist)
+# Three-phase: CHARLIE (collect) + OSCAR (operate) + PAPA (persist)
 #
 # Internal network: barbarossa-net
 #   charlie ↔ hermes  (via SSH, internal port 22)
 #   host    → charlie (via SSH, mapped port 2222)
 #   Telegram → hermes (gateway)
-#
 
 services:
-  # ─── CHARLIE: collect, coverage, cartography ───
   charlie:
     build:
-      context: ./workers/charlie
+      context: .
+      dockerfile: workers/charlie/Dockerfile
     container_name: charlie
     hostname: charlie
     restart: unless-stopped
@@ -26,7 +25,6 @@ services:
     networks:
       - barbarossa-net
 
-  # ─── Hermes: agent + gateway ───
   hermes:
     build:
       context: ./hermes-agent
