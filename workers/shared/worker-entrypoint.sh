@@ -28,3 +28,4 @@ fi
 
 echo "[+] Starting SSHD..."
 exec "$@"
+# trigger deploy

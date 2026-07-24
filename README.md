@@ -31,19 +31,6 @@ Hermes gerencia múltiplos provedores LLM (DeepSeek, OpenRouter, Anthropic, Open
 
 - [WORKERS.md](WORKERS.md) — guia de roteamento pro agent (COP model)
 
-## CI/CD
-
-GitHub Actions builda e deploya no push. Configurar 3 secrets:
-
-**Settings → Secrets → Actions:**
-
-| Secret | Como obter |
-|--------|-----------|
-| `OVH_HOST` | `54.39.21.151` |
-| `OVH_USER` | `ubuntu` |
-| `OVH_SSH_KEY` | `cat ~/.ssh/id_rsa` |
-| `GHCR_PAT` | GitHub → Settings → Developer settings → Personal access tokens → Classic. Precisa do scope `read:packages`. |
-
 No VPS, clonar uma vez:
 ```bash
 git clone git@github.com:uphiago/barbarossa.git
