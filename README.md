@@ -42,6 +42,7 @@ GitHub Actions builda e deploya no push. Configurar 3 secrets:
 | `OVH_HOST` | `54.39.21.151` |
 | `OVH_USER` | `ubuntu` |
 | `OVH_SSH_KEY` | `cat ~/.ssh/id_rsa` |
+| `GHCR_PAT` | GitHub → Settings → Developer settings → Personal access tokens → Classic. Precisa do scope `read:packages`. |
 
 No VPS, clonar uma vez:
 ```bash

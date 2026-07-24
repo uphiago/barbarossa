@@ -32,63 +32,98 @@ jobs:
               - 'workers/papa/**'
               - 'workers/shared/**'
 
-  # ─── Build & push each changed worker ───
-  build:
+  # ─── CHARLIE ───
+  build-charlie:
     needs: changes
+    if: needs.changes.outputs.charlie == 'true'
     runs-on: ubuntu-latest
-    if: needs.changes.outputs.charlie == 'true' || needs.changes.outputs.oscar == 'true' || needs.changes.outputs.papa == 'true'
-    strategy:
-      matrix:
-        worker: [charlie, oscar, papa]
-        exclude:
-          - worker: charlie
-            build: ${{ needs.changes.outputs.charlie != 'true' }}
-          - worker: oscar
-            build: ${{ needs.changes.outputs.oscar != 'true' }}
-          - worker: papa
-            build: ${{ needs.changes.outputs.papa != 'true' }}
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@v4
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & push ${{ matrix.worker }}
-        uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v6
         with:
           context: .
-          file: workers/${{ matrix.worker }}/Dockerfile
+          file: workers/charlie/Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/barbarossa-${{ matrix.worker }}:latest
-            ghcr.io/${{ github.repository_owner }}/barbarossa-${{ matrix.worker }}:${{ github.sha }}
+          tags: ghcr.io/${{ github.repository_owner }}/barbarossa-charlie:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ─── SSH deploy to OVH ───
-  deploy:
-    needs: build
+  # ─── OSCAR ───
+  build-oscar:
+    needs: changes
+    if: needs.changes.outputs.oscar == 'true'
     runs-on: ubuntu-latest
-    if: success()
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: workers/oscar/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/barbarossa-oscar:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Deploy to OVH VPS
+  # ─── PAPA ───
+  build-papa:
+    needs: changes
+    if: needs.changes.outputs.papa == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: workers/papa/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/barbarossa-papa:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─── Deploy to OVH VPS ───
+  deploy:
+    needs: [build-charlie, build-oscar, build-papa]
+    if: |
+      always() &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to OVH
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.OVH_HOST }}
           username: ${{ secrets.OVH_USER }}
           key: ${{ secrets.OVH_SSH_KEY }}
           script: |
-            cd ~/barbarossa
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            cd ~/barbarossa || { git clone https://github.com/uphiago/barbarossa.git ~/barbarossa && cd ~/barbarossa; }
+            git pull
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose pull charlie oscar papa
             docker compose up -d --remove-orphans
             docker image prune -f
