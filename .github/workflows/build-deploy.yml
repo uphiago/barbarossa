@@ -53,8 +53,6 @@ jobs:
           file: workers/charlie/Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/barbarossa-charlie:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   # ─── OSCAR ───
   build-oscar:
@@ -77,8 +75,6 @@ jobs:
           file: workers/oscar/Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/barbarossa-oscar:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   # ─── PAPA ───
   build-papa:
@@ -101,8 +97,6 @@ jobs:
           file: workers/papa/Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/barbarossa-papa:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   # ─── Deploy to OVH VPS ───
   deploy:
