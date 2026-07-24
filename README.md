@@ -1,6 +1,6 @@
 # Barbarossa
 
-**Three-phase agent cluster for autonomous operations.** CHARLIE collects, OSCAR operates, PAPA persists.
+**COP — three-phase agent cluster.** CHARLIE collects, OSCAR operates, PAPA persists.
 
 ```
 Telegram → hermes → ├─ charlie (collect: subfinder, nuclei, nmap, ffuf...)
@@ -11,30 +11,22 @@ Telegram → hermes → ├─ charlie (collect: subfinder, nuclei, nmap, ffuf..
 ## Quick start
 
 ```bash
-cp .env.example .env   # add your API keys
-./setup.sh             # builds, configures, starts everything
+cp .env.example .env   # configure API keys + Telegram token
+docker compose up -d   # sobe todos os workers + hermes
 ```
 
-## Workers — COP Model
+## Workers
 
 | Worker | Phase | Tools |
 |--------|-------|-------|
 | **charlie** | Collect | nmap, subfinder, httpx, nuclei, ffuf, naabu, katana, dnsx, amass, masscan, python3 |
 | **oscar** | Operate | ALL above + gdb, gcc, strace, ltrace, xxd, file, jq, socat |
-| **papa** | Persist | nmap, python3, curl, subfinder, Tor SOCKS5 :9050 |
+| **papa** | Persist | nmap, python3, curl, subfinder, Tor SOCKS5 on :9050 |
 
 ## Architecture
 
-Hermes manages multiple LLM providers (DeepSeek, OpenRouter, Anthropic, OpenAI, Ollama...). Workers are specialized Docker containers accessed via SSH. Single key, zero middleware, pure terminal.
-
-## Requirements
-
-- Docker + compose
-- LLM provider API key
-- Telegram bot token
-- 4GB RAM (charlie + hermes) | 4GB RAM
-- Hermes usa imagem pre-built do Docker Hub (~1GB pull)
+Hermes gerencia múltiplos provedores LLM (DeepSeek, OpenRouter, Anthropic, OpenAI, Ollama...). Workers são containers Docker acessados via SSH — chave única, sem middleware, terminal puro. Roda em VPS de 4GB.
 
 ## Docs
 
-- [WORKERS.md](WORKERS.md) — agent routing guide and COP model
+- [WORKERS.md](WORKERS.md) — guia de roteamento pro agent (COP model)

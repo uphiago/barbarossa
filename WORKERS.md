@@ -1,57 +1,70 @@
-# COP — Three-Phase Worker Model
+# COP — Agent Routing Guide
 
-**CHARLIE, OSCAR, PAPA.** Each maps to a phase of an operation. Not "different tool installs" — different objectives.
+CHARLIE collects. OSCAR operates. PAPA persists. Three phases, one cluster.
 
 ## Decision Matrix
 
-| Phase | Worker | Objective | Tools |
-|-------|--------|-----------|-------|
-| **Collect** | `charlie` | Discover attack surface | subfinder, httpx, nuclei, ffuf, nmap, naabu, katana, dnsx, amass, masscan, python3, curl |
-| **Operate** | `oscar` | Exploit, analyze, build | ALL of charlie + gdb, gcc, strace, ltrace, xxd, file, socat, jq, binutils |
-| **Persist** | `papa` | Move laterally, stay hidden | nmap, python3, curl, subfinder, Tor SOCKS5 :9050 |
-
-## Flow
-
-```
-charlie → map the surface → 15 subdomains, 12 live, 3 with vulns
-oscar   → exploit the vulns → compile PoC, launch, get shell
-papa    → pivot from shell  → lateral movement, credential dump, exfil
-charlie → re-scan from inside → new surface, repeat
-```
-
-The loop: charlie doesn't stop after phase 1. After papa opens a door, charlie rescans from the new perspective.
+| You need to... | Worker | Why |
+|---------------|--------|-----|
+| Discover subdomains, probe live hosts | **charlie** | All scanning tools |
+| Run nuclei, fuzz parameters | **charlie** | Fast, parallel |
+| Port scan, service detection | **charlie** | nmap + scripts |
+| JS bundle scraping, secret extraction | **charlie** | Python + curl |
+| Analyze a suspicious binary | **oscar** | Only worker with gdb, xxd, file |
+| Compile a PoC exploit | **oscar** | Only worker with gcc, make |
+| Debug via core dump / strace | **oscar** | RE toolchain |
+| Probe hostile target anonymously | **papa** | Tor SOCKS5 |
+| Bypass geo-blocks / rate limits | **papa** | Different exit IP |
+| Credential testing without burning IP | **papa** | Circuit changes |
 
 ## Workers
 
 ### charlie (collect)
-Fast. Disposable. Throw away and rebuild anytime. Volume persists scan output.
+Alpine. All scanning tools. Disposable — rebuild anytime. Output on volume.
+
+```
+nmap, masscan, subfinder, httpx, dnsx, nuclei,
+ffuf, naabu, katana, amass, python3, curl, dig
+```
 
 ### oscar (operate)
-Stateful. Keep compiled exploits, analysis artifacts, reverse engineering notes here. Don't treat as disposable.
+Debian. Full recon toolset + RE/compilation. Stateful — keep exploits here.
+
+```
+Everything from charlie PLUS:
+gdb, gcc, g++, make, cmake, strace, ltrace, xxd,
+file, socat, jq, full Python with all libs
+```
 
 ### papa (persist)
-Anonymous. All outbound through Tor. Circuit identity changes. For anything where IP attribution matters — credential testing, lateral movement, probing hostile infra.
+Alpine. All outbound through Tor. Disposable — circuit changes on restart.
 
-⚠️ Tor circuit may not establish on some networks. Deploy papa on a VPS if `torsocks` hangs.
+```
+nmap, python3, curl, subfinder, Tor SOCKS5 on :9050
+```
+
+## Flow
+
+```
+charlie → map the surface → subdomains, live hosts, vulnerabilities
+oscar   → exploit the vuln → compile PoC, launch, get shell
+papa    → pivot from shell → lateral movement, stay hidden
+charlie → re-scan inside   → new perspective, repeat
+```
 
 ## SSH
 
-Single key, Docker DNS, no IPs.
-
-
-## Lifecycle
-
-| Worker | Type | Memory | Data safety |
-|--------|------|--------|-------------|
-| charlie | Disposable | ~500MB | Output on volume — safe to rebuild |
-| oscar   | Keep alive | ~1.2GB | Artifacts, compiled exploits, notes |
-| papa    | Disposable | ~150MB | Tor state ephemeral, circuit changes on restart |
-
-
-
+```bash
+ssh root@charlie
+ssh root@oscar
+ssh root@papa
+ssh root@papa "torsocks curl https://ifconfig.me"
+```
 
 ## Startup
 
 ```bash
-docker compose up -d   # todos os workers + hermes
+docker compose up -d   # sobe todos os workers + hermes, cabe em 4GB
 ```
+
+⚠️ Papa usa Tor. Se `torsocks` travar, o circuito Tor nao estabelece nessa rede — implante em VPS.
