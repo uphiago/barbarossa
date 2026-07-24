@@ -3,12 +3,12 @@
 ## Topology
 
 ```
-Telegram ──→ hermes (agentiko-hermes) ──SSH──→ cluster
+Telegram ──→ hermes (barbarossa-hermes) ──SSH──→ cluster
                    │                              │
                    │ /opt/data/skills/            ├── worker (recon, Alpine)
                    │ /opt/data/AGENTS.md          ├── worker-heavy (RE, Debian)
                    │ /opt/data/ssh/               └── worker-tor (Tor, Alpine)
-                   │ agentiko_key
+                   │ barbarossa_key
                    │
                    │ Hermes agent uses DeepSeek
                    │ Loads 171 skills from GitHub
@@ -19,9 +19,9 @@ Telegram ──→ hermes (agentiko-hermes) ──SSH──→ cluster
 
 | Worker | Hostname | Image | Size | Tools |
 |--------|----------|-------|------|-------|
-| recon | `worker` (172.20.0.4) | agentiko-worker:latest | 1.27GB | nmap, subfinder, httpx, nuclei, ffuf, naabu, katana, dnsx, amass, masscan, python3, curl |
-| heavy | `agentiko-worker-heavy` (172.20.0.3) | agentiko-worker-heavy:latest | 1.6GB | ALL recon tools + gdb, gcc, strace, ltrace, xxd, file, jq, socat |
-| tor | `agentiko-worker-tor` (172.20.0.5) | agentiko-worker-tor:latest | 218MB | nmap, python3, curl, Tor SOCKS5 :9050 |
+| recon | `worker` (172.20.0.4) | barbarossa-worker:latest | 1.27GB | nmap, subfinder, httpx, nuclei, ffuf, naabu, katana, dnsx, amass, masscan, python3, curl |
+| heavy | `barbarossa-worker-heavy` (172.20.0.3) | barbarossa-worker-heavy:latest | 1.6GB | ALL recon tools + gdb, gcc, strace, ltrace, xxd, file, jq, socat |
+| tor | `barbarossa-worker-tor` (172.20.0.5) | barbarossa-worker-tor:latest | 218MB | nmap, python3, curl, Tor SOCKS5 :9050 |
 
 ## When to use each worker
 
@@ -37,27 +37,27 @@ Telegram ──→ hermes (agentiko-hermes) ──SSH──→ cluster
 
 ## SSH
 
-Single key for all workers: `/opt/data/ssh/agentiko_key`
+Single key for all workers: `/opt/data/ssh/barbarossa_key`
 
 ```bash
 # From hermes:
-ssh -i /opt/data/ssh/agentiko_key -o StrictHostKeyChecking=no root@worker
-ssh -i /opt/data/ssh/agentiko_key -o StrictHostKeyChecking=no root@agentiko-worker-heavy
-ssh -i /opt/data/ssh/agentiko_key -o StrictHostKeyChecking=no root@agentiko-worker-tor
+ssh -i /opt/data/ssh/barbarossa_key -o StrictHostKeyChecking=no root@worker
+ssh -i /opt/data/ssh/barbarossa_key -o StrictHostKeyChecking=no root@barbarossa-worker-heavy
+ssh -i /opt/data/ssh/barbarossa_key -o StrictHostKeyChecking=no root@barbarossa-worker-tor
 
 # From host:
-ssh -i ~/.ssh/agentiko_key -p 2222 root@localhost  # worker only
+ssh -i ~/.ssh/barbarossa_key -p 2222 root@localhost  # worker only
 ```
 
 ## Tor usage
 
 ```bash
 # Wrap any command with torsocks:
-ssh root@agentiko-worker-tor "torsocks curl -s https://ifconfig.me"
-ssh root@agentiko-worker-tor "torsocks subfinder -d target.com"
+ssh root@barbarossa-worker-tor "torsocks curl -s https://ifconfig.me"
+ssh root@barbarossa-worker-tor "torsocks subfinder -d target.com"
 
 # Or use SOCKS5 proxy directly:
-curl --socks5-hostname agentiko-worker-tor:9050 https://target.com
+curl --socks5-hostname barbarossa-worker-tor:9050 https://target.com
 ```
 
 **⚠️ Tor network may be blocked by some ISPs or Docker configurations. If `torsocks` hangs indefinitely, the Tor network is unreachable from that host. Deploy worker-tor on a VPS for full functionality.**
@@ -65,7 +65,7 @@ curl --socks5-hostname agentiko-worker-tor:9050 https://target.com
 ## Starting the cluster
 
 ```bash
-cd ~/repositories/homelab/agentiko
+cd ~/repositories/homelab/barbarossa
 
 # Full cluster (hermes + all 3 workers):
 docker compose -f docker-compose.yml -f docker-compose.workers.yml --profile full up -d

@@ -1,7 +1,7 @@
-# agentiko — docker compose
+# barbarossa — docker compose
 # Two services: worker (tools + SSH) and hermes (agent + gateway)
 #
-# Internal network: agentiko-net
+# Internal network: barbarossa-net
 #   worker  ↔  hermes  (via SSH, internal port 22)
 #   host    →  worker  (via SSH, mapped port 2222)
 #   Telegram → hermes  (gateway)
@@ -12,8 +12,8 @@ services:
   worker:
     build:
       context: ./worker
-    container_name: agentiko-worker
-    hostname: agentiko-worker
+    container_name: barbarossa-worker
+    hostname: barbarossa-worker
     restart: unless-stopped
     ports:
       - "2222:22"                           # SSH from your machine
@@ -24,14 +24,14 @@ services:
     environment:
       - TZ=America/Sao_Paulo
     networks:
-      - agentiko-net
+      - barbarossa-net
 
   # ─── Hermes: agent + Telegram gateway ───
   hermes:
     build:
       context: ./hermes-agent               # official Hermes Dockerfile
-    container_name: agentiko-hermes
-    hostname: agentiko-hermes
+    container_name: barbarossa-hermes
+    hostname: barbarossa-hermes
     restart: unless-stopped
     command: gateway run                     # start gateway, not CLI
     depends_on:
@@ -50,21 +50,21 @@ services:
       - TERMINAL_SSH_HOST=worker
       - TERMINAL_SSH_PORT=22
       - TERMINAL_SSH_USER=root
-      - TERMINAL_SSH_KEY=/opt/data/ssh/agentiko_key
+      - TERMINAL_SSH_KEY=/opt/data/ssh/barbarossa_key
       - HERMES_DASHBOARD=1
       - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=${DASHBOARD_USER:-admin}
-      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${DASHBOARD_PASS:-agentiko}
-      - HERMES_DASHBOARD_BASIC_AUTH_SECRET=${DASHBOARD_SECRET:-agentiko-dashboard-secret-change-me}
+      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${DASHBOARD_PASS:-barbarossa}
+      - HERMES_DASHBOARD_BASIC_AUTH_SECRET=${DASHBOARD_SECRET:-barbarossa-dashboard-secret-change-me}
       - SKILLS_REPO=https://github.com/uphiago/recon-skills.git
       # API server (uncomment to enable):
       # - API_SERVER_ENABLED=true
       # - API_SERVER_HOST=0.0.0.0
       # - API_SERVER_KEY=${API_SERVER_KEY}
     networks:
-      - agentiko-net
+      - barbarossa-net
 
 networks:
-  agentiko-net:
+  barbarossa-net:
     driver: bridge
 
 volumes:
