@@ -26,8 +26,10 @@ services:
       - barbarossa-net
 
   hermes:
-    build:
-      context: ./hermes-agent
+    image: nousresearch/hermes-agent:latest
+    # Para build local, troque por:
+    # build:
+    #   context: ./hermes-agent
     container_name: hermes
     hostname: hermes
     restart: unless-stopped

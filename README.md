@@ -32,7 +32,8 @@ Hermes manages multiple LLM providers (DeepSeek, OpenRouter, Anthropic, OpenAI, 
 - Docker + compose
 - LLM provider API key
 - Telegram bot token
-- 8GB RAM (full cluster), 4GB (charlie only)
+- 4GB RAM (charlie + hermes) | 8GB RAM (cluster completo)
+- Hermes usa imagem pre-built do Docker Hub (~1GB pull)
 
 ## Docs
 

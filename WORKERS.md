@@ -47,8 +47,21 @@ ssh root@papa "torsocks curl https://ifconfig.me"
 
 ## Lifecycle
 
-| Worker | Type | Data safety |
-|--------|------|-------------|
-| charlie | Disposable | Output on volume — safe to rebuild |
-| oscar   | Keep alive | Artifacts, compiled exploits, notes |
-| papa    | Disposable | Tor state is ephemeral, circuit changes on restart |
+| Worker | Type | Memory | Data safety |
+|--------|------|--------|-------------|
+| charlie | Disposable | ~500MB | Output on volume — safe to rebuild |
+| oscar   | Keep alive | ~1.2GB | Artifacts, compiled exploits, notes |
+| papa    | Disposable | ~150MB | Tor state ephemeral, circuit changes on restart |
+
+## Deployment
+
+```bash
+# VPS 4GB (mínimo viável):
+docker compose up -d                    # charlie + hermes
+
+# Workstation 8GB+ (cluster completo):
+docker compose -f docker-compose.yml -f docker-compose.workers.yml --profile full up -d
+
+# Ver status:
+docker compose ps
+```

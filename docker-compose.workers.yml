@@ -1,14 +1,14 @@
-# Barbarossa — OSCAR + PAPA workers
+# Barbarossa — OSCAR + PAPA workers (opcionais)
 #
-# CHARLIE está no docker-compose.yml (principal).
-# OSCAR e PAPA são ativados com --profile full.
+# CHARLIE está no docker-compose.yml e é o único obrigatório.
+# OSCAR e PAPA são para fases avançadas.
 #
-# CHARLIE = collect, coverage, cartography
-# OSCAR   = operate, offense, breach
-# PAPA    = persist, pivot, post-exploit
+# Em VPS com 4GB:
+#   docker compose up -d                # só charlie + hermes
+# Em máquina com 8GB+:
+#   docker compose -f docker-compose.yml -f docker-compose.workers.yml --profile full up -d
 #
 # Uso:
-#   docker compose -f docker-compose.yml -f docker-compose.workers.yml --profile full up -d
 #   ssh root@oscar
 #   ssh root@papa
 #   ssh root@papa "torsocks curl https://ifconfig.me"
