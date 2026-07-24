@@ -41,7 +41,6 @@ services:
     # - "127.0.0.1:8642:8642"               # API server (localhost only, tunnel via SSH)
     volumes:
       - hermes-data:/opt/data               # config, .env, sessions, skills
-      - ./sync-recon-skills.sh:/etc/cont-init.d/03-sync-recon-skills:ro  # sync skills from GitHub on every boot
     env_file:
       - .env                                 # API keys + Telegram
     environment:
@@ -55,7 +54,6 @@ services:
       - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=${DASHBOARD_USER:-admin}
       - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${DASHBOARD_PASS:-barbarossa}
       - HERMES_DASHBOARD_BASIC_AUTH_SECRET=${DASHBOARD_SECRET:-barbarossa-dashboard-secret-change-me}
-      - SKILLS_REPO=https://github.com/uphiago/recon-skills.git
       # API server (uncomment to enable):
       # - API_SERVER_ENABLED=true
       # - API_SERVER_HOST=0.0.0.0

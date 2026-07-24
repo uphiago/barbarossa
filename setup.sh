@@ -103,20 +103,6 @@ Host worker
     UserKnownHostsFile /dev/null
 SSHEOF
 
-# ─── 10. Inject custom skills ───
-echo "[+] Cloning skills from GitHub..."
-SKILLS_REPO="${SKILLS_REPO:-https://github.com/uphiago/recon-skills.git}"
-docker exec barbarossa-hermes sh -c "
-  rm -rf /tmp/recon-skills /opt/data/skills 2>/dev/null
-  mkdir -p /opt/data/skills
-  git clone --depth 1 '$SKILLS_REPO' /tmp/recon-skills 2>&1
-  cp -r /tmp/recon-skills/skills/* /opt/data/skills/
-  rm -rf /tmp/recon-skills
-  chown -R hermes:hermes /opt/data/skills/
-"
-COUNT=$(docker exec barbarossa-hermes find /opt/data/skills -name "SKILL.md" 2>/dev/null | wc -l)
-echo "    Done: $COUNT skills from GitHub"
-
 # ─── 10b. Inject AGENTS.md + SOUL.md ───
 if [ -f AGENTS.md ]; then
   docker cp AGENTS.md barbarossa-hermes:/opt/data/AGENTS.md
