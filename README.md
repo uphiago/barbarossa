@@ -31,12 +31,12 @@ cp .env.example .env   # add your API keys
 
 ## Architecture
 
-Agent runs on DeepSeek. Workers are specialized Docker containers accessed via SSH. Single key, zero middleware, pure terminal.
+Hermes manages multiple model providers (DeepSeek, OpenRouter, Anthropic, OpenAI, Ollama...). Workers are specialized Docker containers accessed via SSH. Single key, zero middleware, pure terminal.
 
 ## Requirements
 
 - Docker + compose
-- DeepSeek API key
+- LLM provider API key (DeepSeek, OpenRouter, Anthropic, etc.)
 - Telegram bot token
 - 8GB RAM (full cluster), 4GB (recon only)
 
