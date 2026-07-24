@@ -100,3 +100,9 @@ volumes:
   oscar-data:
   papa-data:
   hermes-data:
+
+# Hermes first-run config (applied once via setup.sh or manually):
+#   hermes config set terminal.backend ssh
+#   hermes config set model.provider deepseek
+#   hermes config set model.name deepseek/deepseek-v4-flash
+#   hermes config set model.default deepseek/deepseek-v4-flash

@@ -129,4 +129,9 @@ jobs:
             git pull https://x-access-token:${{ secrets.GHCR_PAT }}@github.com/uphiago/barbarossa.git
             $DOCKER compose pull charlie oscar papa 2>/dev/null || true
             $DOCKER compose up -d --remove-orphans
+            # First-run config
+            $DOCKER exec hermes hermes config set terminal.backend ssh 2>/dev/null || true
+            $DOCKER exec hermes hermes config set model.provider deepseek 2>/dev/null || true
+            $DOCKER exec hermes hermes config set model.name deepseek/deepseek-v4-flash 2>/dev/null || true
+            $DOCKER exec hermes hermes config set model.default deepseek/deepseek-v4-flash 2>/dev/null || true
             $DOCKER image prune -f
