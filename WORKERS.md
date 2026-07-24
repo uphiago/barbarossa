@@ -1,88 +1,54 @@
-# Worker Cluster — Agent Routing Guide
+# COP — Three-Phase Worker Model
 
-Three specialized workers. Not "three copies with different tools" — three different execution environments for different phases of an operation.
+**CHARLIE, OSCAR, PAPA.** Each maps to a phase of an operation. Not "different tool installs" — different objectives.
 
 ## Decision Matrix
 
-| You need to... | Use | Why |
-|---------------|------|-----|
-| Discover subdomains, probe live hosts | **worker** | Fast, all scanning tools |
-| Run nuclei templates, fuzz parameters | **worker** | Mass scanning, parallel |
-| Quick curl/HTTP probes | **worker** | Lightweight |
-| Port scan, service detection, OS fingerprint | **worker** | nmap + scripts |
-| Scrape JS bundles, extract secrets | **worker** | Python + curl |
-| **Analyze a suspicious binary** from a target | **worker-heavy** | Only worker with gdb, xxd, file |
-| **Compile a PoC exploit** from source | **worker-heavy** | Only worker with gcc, make |
-| **Debug a crashing service** via core dump | **worker-heavy** | Only worker with gdb + strace |
-| **Reverse engineer a malware sample** | **worker-heavy** | Binutils + Python full |
-| **Probe a hostile target anonymously** | **worker-tor** | Traffic routed through Tor |
-| **Bypass geo-blocks or IP rate limits** | **worker-tor** | Different exit IP per circuit |
-| **Recon on a target that is actively monitoring** | **worker-tor** | Don't burn your real IP |
+| Phase | Worker | Objective | Tools |
+|-------|--------|-----------|-------|
+| **Collect** | `charlie` | Discover attack surface | subfinder, httpx, nuclei, ffuf, nmap, naabu, katana, dnsx, amass, masscan, python3, curl |
+| **Operate** | `oscar` | Exploit, analyze, build | ALL of charlie + gdb, gcc, strace, ltrace, xxd, file, socat, jq, binutils |
+| **Persist** | `papa` | Move laterally, stay hidden | nmap, python3, curl, subfinder, Tor SOCKS5 :9050 |
+
+## Flow
+
+```
+charlie → map the surface → 15 subdomains, 12 live, 3 with vulns
+oscar   → exploit the vulns → compile PoC, launch, get shell
+papa    → pivot from shell  → lateral movement, credential dump, exfil
+charlie → re-scan from inside → new surface, repeat
+```
+
+The loop: charlie doesn't stop after phase 1. After papa opens a door, charlie rescans from the new perspective.
 
 ## Workers
 
-### worker (recon)
-Fast, disposable. Alpine. All scanning tools. This is the default — most tasks run here.
+### charlie (collect)
+Fast. Disposable. Throw away and rebuild anytime. Volume persists scan output.
 
-```
-nmap, masscan, subfinder, httpx, dnsx, nuclei,
-ffuf, naabu, katana, amass, python3, curl, dig
-```
+### oscar (operate)
+Stateful. Keep compiled exploits, analysis artifacts, reverse engineering notes here. Don't treat as disposable.
 
-### worker-heavy (analysis + RE)
-Persistent. Don't treat as disposable — keep compiled exploits, analysis notes, extracted binaries here.
+### papa (persist)
+Anonymous. All outbound through Tor. Circuit identity changes. For anything where IP attribution matters — credential testing, lateral movement, probing hostile infra.
 
-```
-Everything from worker PLUS:
-gdb, gcc, g++, make, cmake, strace, ltrace, xxd,
-file, socat, jq, full Python with all libs
-```
-
-### worker-tor (anonymous)
-All outbound traffic through Tor. Circuit identity changes over time. For anything where IP attribution matters.
-
-```
-nmap, python3, curl, subfinder, Tor SOCKS5 on :9050
-```
-
-⚠️ Tor circuit may not establish on some networks. If `torsocks` hangs, deploy this worker on a VPS.
-
-## Operation Flow Example
-
-```
-1. worker:     subfinder -d target.com → 15 subdomains
-2. worker:     httpx -l subs.txt → 12 live, 3 dead
-3. worker:     nuclei on live hosts → finds WordPress + Exchange
-4. worker:     wpscan on WordPress → plugin CVE found
-5. worker-heavy: compile CVE exploit from GitHub → binary ready
-6. worker-tor:  test exploit against target anonymously
-7. worker:     if exploit works, full scan from worker
-```
+⚠️ Tor circuit may not establish on some networks. Deploy papa on a VPS if `torsocks` hangs.
 
 ## SSH
 
-Single key, all workers. Docker DNS resolves hostnames — no IPs to remember.
+Single key, Docker DNS, no IPs.
 
 ```bash
-ssh root@worker
-ssh root@worker-heavy
-ssh root@worker-tor
-```
-
-## Tor Usage
-
-```bash
-# Wrap commands with torsocks:
-ssh root@worker-tor "torsocks curl -s https://ifconfig.me"
-
-# Or SOCKS5 proxy directly:
-curl --socks5-hostname worker-tor:9050 https://target.com
+ssh root@charlie
+ssh root@oscar
+ssh root@papa
+ssh root@papa "torsocks curl https://ifconfig.me"
 ```
 
 ## Lifecycle
 
-| Worker | Lifecycle | Data |
-|--------|-----------|------|
-| **worker** | Disposable. Rebuild anytime | `/root/output` is a volume — persists across rebuilds |
-| **worker-heavy** | Keep alive. Stateful | Compile artifacts, notes, exploit binaries |
-| **worker-tor** | Disposable. Circuit changes on restart | Tor state is ephemeral |
+| Worker | Type | Data safety |
+|--------|------|-------------|
+| charlie | Disposable | Output on volume — safe to rebuild |
+| oscar   | Keep alive | Artifacts, compiled exploits, notes |
+| papa    | Disposable | Tor state is ephemeral, circuit changes on restart |

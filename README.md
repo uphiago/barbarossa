@@ -1,13 +1,11 @@
 # Barbarossa
 
-**Multi-worker agent cluster for autonomous offensive security operations.**
-
-Offensive security agent with specialized workers — recon, RE, and anonymous scanning via Tor.
+**Three-phase agent cluster for autonomous operations.** CHARLIE collects, OSCAR operates, PAPA persists.
 
 ```
-Telegram → barbarossa-hermes → ├─ worker (recon: nmap, subfinder, nuclei, ffuf...)
-                                ├─ worker-heavy (RE: gdb, gcc, strace...)
-                                └─ worker-tor (anon: Tor SOCKS5)
+Telegram → hermes → ├─ charlie (collect: subfinder, nuclei, nmap, ffuf...)
+                     ├─ oscar   (operate: gdb, gcc, exploit dev, RE...)
+                     └─ papa    (persist: Tor, lateral movement, stealth...)
 ```
 
 ## Quick start
@@ -17,30 +15,25 @@ cp .env.example .env   # add your API keys
 ./setup.sh             # builds, configures, starts everything
 ```
 
-## Workers
+## Workers — COP Model
 
-| Worker | Size | Tools |
-|--------|------|-------|
-| **worker** | 1.27GB | nmap, subfinder, httpx, nuclei, ffuf, naabu, katana, dnsx, amass, masscan, python3 |
-| **worker-heavy** | 1.6GB | ALL recon tools + gdb, gcc, strace, ltrace, xxd, file |
-| **worker-tor** | 218MB | nmap, python3, Tor SOCKS5 :9050 |
-
-## Skills
-
-171 offensive security skills from [recon-skills](https://github.com/uphiago/recon-skills) — auto-synced from GitHub on every boot.
+| Worker | Phase | Tools |
+|--------|-------|-------|
+| **charlie** | Collect | nmap, subfinder, httpx, nuclei, ffuf, naabu, katana, dnsx, amass, masscan, python3 |
+| **oscar** | Operate | ALL above + gdb, gcc, strace, ltrace, xxd, file, jq, socat |
+| **papa** | Persist | nmap, python3, curl, subfinder, Tor SOCKS5 :9050 |
 
 ## Architecture
 
-Hermes manages multiple model providers (DeepSeek, OpenRouter, Anthropic, OpenAI, Ollama...). Workers are specialized Docker containers accessed via SSH. Single key, zero middleware, pure terminal.
+Hermes manages multiple LLM providers (DeepSeek, OpenRouter, Anthropic, OpenAI, Ollama...). Workers are specialized Docker containers accessed via SSH. Single key, zero middleware, pure terminal.
 
 ## Requirements
 
 - Docker + compose
-- LLM provider API key (DeepSeek, OpenRouter, Anthropic, etc.)
+- LLM provider API key
 - Telegram bot token
-- 8GB RAM (full cluster), 4GB (recon only)
+- 8GB RAM (full cluster), 4GB (charlie only)
 
 ## Docs
 
-- [WORKERS.md](WORKERS.md) — cluster operations and routing
-- [recon-skills](https://github.com/uphiago/recon-skills) — skill catalog
+- [WORKERS.md](WORKERS.md) — agent routing guide and COP model

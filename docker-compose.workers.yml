@@ -1,25 +1,29 @@
-# Barbarossa — extra workers
+# Barbarossa — OSCAR + PAPA workers
 #
-# Adiciona worker-heavy e worker-tor ao cluster.
-# O worker principal ja esta no docker-compose.yml.
-# Heavy e Tor sao para uso especializado.
+# CHARLIE está no docker-compose.yml (principal).
+# OSCAR e PAPA são ativados com --profile full.
+#
+# CHARLIE = collect, coverage, cartography
+# OSCAR   = operate, offense, breach
+# PAPA    = persist, pivot, post-exploit
 #
 # Uso:
 #   docker compose -f docker-compose.yml -f docker-compose.workers.yml --profile full up -d
-#   ssh -i ~/.ssh/key root@worker-heavy
-#   ssh -i ~/.ssh/key root@worker-tor
+#   ssh root@oscar
+#   ssh root@papa
+#   ssh root@papa "torsocks curl https://ifconfig.me"
 
 services:
-  worker-heavy:
+  oscar:
     build:
       context: .
-      dockerfile: workers/heavy/Dockerfile
-    container_name: worker-heavy
-    hostname: worker-heavy
+      dockerfile: workers/oscar/Dockerfile
+    container_name: oscar
+    hostname: oscar
     restart: unless-stopped
     volumes:
       - ./worker/ssh-keys/authorized_keys:/ssh-keys/authorized_keys:ro
-      - worker-heavy-data:/root/output
+      - oscar-data:/root/output
     environment:
       - TZ=America/Sao_Paulo
     networks:
@@ -27,16 +31,16 @@ services:
     profiles:
       - full
 
-  worker-tor:
+  papa:
     build:
       context: .
-      dockerfile: workers/tor/Dockerfile
-    container_name: worker-tor
-    hostname: worker-tor
+      dockerfile: workers/papa/Dockerfile
+    container_name: papa
+    hostname: papa
     restart: unless-stopped
     volumes:
       - ./worker/ssh-keys/authorized_keys:/ssh-keys/authorized_keys:ro
-      - worker-tor-data:/root/output
+      - papa-data:/root/output
     environment:
       - TZ=America/Sao_Paulo
     networks:
@@ -45,5 +49,5 @@ services:
       - full
 
 volumes:
-  worker-heavy-data:
-  worker-tor-data:
+  oscar-data:
+  papa-data:

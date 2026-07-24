@@ -1,63 +1,58 @@
 # barbarossa — docker compose
-# Two services: worker (tools + SSH) and hermes (agent + gateway)
+# Three-phase operation: CHARLIE (collect) + OSCAR (operate) + PAPA (persist)
 #
 # Internal network: barbarossa-net
-#   worker  ↔  hermes  (via SSH, internal port 22)
-#   host    →  worker  (via SSH, mapped port 2222)
-#   Telegram → hermes  (gateway)
+#   charlie ↔ hermes  (via SSH, internal port 22)
+#   host    → charlie (via SSH, mapped port 2222)
+#   Telegram → hermes (gateway)
 #
 
 services:
-  # ─── Worker: recon tools + SSH server ───
-  worker:
+  # ─── CHARLIE: collect, coverage, cartography ───
+  charlie:
     build:
-      context: ./worker
-    container_name: worker
-    hostname: worker
+      context: ./workers/charlie
+    container_name: charlie
+    hostname: charlie
     restart: unless-stopped
     ports:
-      - "2222:22"                           # SSH from your machine
+      - "2222:22"
     volumes:
       - ./worker/ssh-keys/authorized_keys:/ssh-keys/authorized_keys:ro
-      - worker-data:/root                   # persist output, tools, etc
-      - hermes-data:/hermes                 # Hermes home (skills, config, AGENTS.md)
+      - charlie-data:/root
+      - hermes-data:/hermes
     environment:
       - TZ=America/Sao_Paulo
     networks:
       - barbarossa-net
 
-  # ─── Hermes: agent + Telegram gateway ───
+  # ─── Hermes: agent + gateway ───
   hermes:
     build:
-      context: ./hermes-agent               # official Hermes Dockerfile
+      context: ./hermes-agent
     container_name: hermes
     hostname: hermes
     restart: unless-stopped
-    command: gateway run                     # start gateway, not CLI
+    command: gateway run
     depends_on:
-      - worker
+      - charlie
     ports:
-      - "127.0.0.1:9119:9119"               # dashboard (localhost only, tunnel via SSH)
-    # - "127.0.0.1:8642:8642"               # API server (localhost only, tunnel via SSH)
+      - "127.0.0.1:9119:9119"
     volumes:
-      - hermes-data:/opt/data               # config, .env, sessions, skills
+      - hermes-data:/opt/data
     env_file:
-      - .env                                 # API keys + Telegram
+      - .env
     environment:
       - TZ=America/Sao_Paulo
       - TERMINAL_ENV=ssh
-      - TERMINAL_SSH_HOST=worker
+      - TERMINAL_SSH_HOST=charlie
       - TERMINAL_SSH_PORT=22
       - TERMINAL_SSH_USER=root
-      - TERMINAL_SSH_KEY=/opt/data/ssh/barbarossa_key
+      - TERMINAL_SSH_KEY=/opt/data/ssh/key
       - HERMES_DASHBOARD=1
       - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=${DASHBOARD_USER:-admin}
       - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${DASHBOARD_PASS:-barbarossa}
       - HERMES_DASHBOARD_BASIC_AUTH_SECRET=${DASHBOARD_SECRET:-barbarossa-dashboard-secret-change-me}
-      # API server (uncomment to enable):
-      # - API_SERVER_ENABLED=true
-      # - API_SERVER_HOST=0.0.0.0
-      # - API_SERVER_KEY=${API_SERVER_KEY}
     networks:
       - barbarossa-net
 
@@ -66,5 +61,5 @@ networks:
     driver: bridge
 
 volumes:
-  worker-data:
+  charlie-data:
   hermes-data:

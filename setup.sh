@@ -56,9 +56,9 @@ else
 fi
 
 # ─── 4. Worker authorized_keys ───
-mkdir -p worker/ssh-keys
-cp "${KEY_PATH}.pub" worker/ssh-keys/authorized_keys
-chmod 600 worker/ssh-keys/authorized_keys
+mkdir -p charlie/ssh-keys
+cp "${KEY_PATH}.pub" charlie/ssh-keys/authorized_keys
+chmod 600 charlie/ssh-keys/authorized_keys
 echo "[+] Worker authorized_keys ready"
 
 # ─── 5. Handle running containers ───
@@ -98,7 +98,7 @@ if ! docker exec hermes test -f /opt/data/ssh/barbarossa_key 2>/dev/null; then
     docker cp "$KEY_PATH" hermes:/opt/data/ssh/barbarossa_key
 fi
 docker exec -i hermes sh -c 'cat > /opt/data/.ssh/config && chown -R hermes:hermes /opt/data/.ssh && chmod 600 /opt/data/ssh/barbarossa_key' << 'SSHEOF'
-Host worker
+Host charlie
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
 SSHEOF
@@ -149,7 +149,7 @@ echo "[+] Health check: SSH Hermes → Worker..."
 HEALTH_OK=false
 for attempt in $(seq 1 10); do
     if docker exec hermes su -s /bin/sh hermes -c \
-        "ssh -i /opt/data/ssh/barbarossa_key -o StrictHostKeyChecking=no -o ConnectTimeout=3 root@worker 'echo OK'" 2>&1 | grep -q "^OK"; then
+        "ssh -i /opt/data/ssh/barbarossa_key -o StrictHostKeyChecking=no -o ConnectTimeout=3 root@charlie 'echo OK'" 2>&1 | grep -q "^OK"; then
         echo "    ✅ SSH healthy (attempt $attempt)"
         HEALTH_OK=true
         break
@@ -157,7 +157,7 @@ for attempt in $(seq 1 10); do
     sleep 2
 done
 if ! $HEALTH_OK; then
-    echo "    ❌ SSH failed after 5 attempts — check worker logs"
+    echo "    ❌ SSH failed after 5 attempts — check charlie logs"
 fi
 
 # ─── 12. Provider test ───
@@ -185,12 +185,12 @@ echo "║  Setup complete!                       ║"
 echo "╠════════════════════════════════════════╣"
 echo "║  View logs:                            ║"
 echo "║    docker compose logs -f hermes       ║"
-echo "║    docker compose logs -f worker       ║"
+echo "║    docker compose logs -f charlie       ║"
 echo "║                                        ║"
-echo "║  SSH into worker:                      ║"
+echo "║  SSH into charlie:                      ║"
 echo "║    ssh -i $KEY_PATH root@localhost \\   ║"
 echo "║      -p 2222                           ║"
-echo "║    VM_KEY=$KEY_PATH ./worker/vm.sh \\   ║"
+echo "║    VM_KEY=$KEY_PATH ./charlie/vm.sh \\   ║"
 echo "║      check                             ║"
 echo "║                                        ║"
 echo "║  Setup log saved to:                   ║"
