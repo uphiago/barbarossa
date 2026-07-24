@@ -32,4 +32,3 @@ RUN chmod +x /entrypoint.sh /usr/local/bin/sshd-shell
 EXPOSE 22
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/sbin/sshd", "-D", "-e", "-o", "PermitRootLogin=prohibit-password", "-o", "PasswordAuthentication=no", "-o", "PubkeyAuthentication=yes", "-o", "ForceCommand=/usr/local/bin/sshd-shell"]
-
