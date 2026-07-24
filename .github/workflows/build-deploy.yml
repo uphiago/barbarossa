@@ -115,6 +115,11 @@ jobs:
           username: ${{ secrets.OVH_USER }}
           key: ${{ secrets.OVH_SSH_KEY }}
           script: |
+            # First-time setup: install Docker if missing
+            if ! command -v docker >/dev/null 2>&1; then
+              curl -fsSL https://get.docker.com | sh
+              sudo usermod -aG docker $USER
+            fi
             cd ~/barbarossa || { git clone https://github.com/uphiago/barbarossa.git ~/barbarossa && cd ~/barbarossa; }
             git pull
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
