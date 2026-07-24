@@ -14,7 +14,7 @@ RUN echo "SOCKSPort 0.0.0.0:9050" > /etc/tor/torrc && \
 
 COPY workers/shared/sshd-shell.sh /usr/local/bin/sshd-shell
 COPY workers/shared/worker-entrypoint.sh /entrypoint.sh
-COPY workers/tor/tor-entrypoint.sh /tor-entrypoint.sh
+COPY workers/papa/tor-entrypoint.sh /tor-entrypoint.sh
 RUN chmod +x /entrypoint.sh /usr/local/bin/sshd-shell /tor-entrypoint.sh
 
 EXPOSE 22 9050
