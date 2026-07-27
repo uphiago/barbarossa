@@ -16,6 +16,9 @@ missing=""
 [[ -z "${HERMES_MODEL:-}" ]] && missing="$missing HERMES_MODEL"
 [[ -z "${TELEGRAM_BOT_TOKEN:-}" ]] && missing="$missing TELEGRAM_BOT_TOKEN"
 [[ -z "${DEEPSEEK_API_KEY:-}" ]] && [[ -z "${OPENROUTER_API_KEY:-}" ]] && missing="$missing API_KEY"
+[[ -z "${DASHBOARD_USER:-}" ]] && missing="$missing DASHBOARD_USER"
+[[ -z "${DASHBOARD_PASS:-}" ]] && missing="$missing DASHBOARD_PASS"
+[[ -z "${DASHBOARD_SECRET:-}" ]] && missing="$missing DASHBOARD_SECRET"
 
 if [[ -n "$missing" ]]; then
   echo "Missing env vars:$missing"
@@ -23,22 +26,20 @@ if [[ -n "$missing" ]]; then
   exit 1
 fi
 
-# ─── 2. SSH key ───
-if grep -q "^BARBAROSSA_SSH_KEY=" .env 2>/dev/null; then
-    KEY_PATH="$(grep "^BARBAROSSA_SSH_KEY=" .env | cut -d= -f2-)"
-else
-    KEY_PATH="$HOME/.ssh/barbarossa_key"
-    echo "BARBAROSSA_SSH_KEY=$KEY_PATH" >> .env
-fi
+# ─── 2. Local SSH key ───
+KEY_PATH="${BARBAROSSA_SSH_KEY:-$HOME/.ssh/barbarossa_key}"
 
 if [ ! -f "$KEY_PATH" ]; then
     echo "[+] Generating SSH key..."
+    mkdir -p "$(dirname "$KEY_PATH")"
     ssh-keygen -t ed25519 -f "$KEY_PATH" -N "" -C "barbarossa" >/dev/null 2>&1
 fi
 
 # ─── 3. SSH authorized_keys ───
-mkdir -p worker/ssh-keys
-cp "$KEY_PATH.pub" worker/ssh-keys/authorized_keys
+AUTHORIZED_KEYS_FILE="${BARBAROSSA_AUTHORIZED_KEYS_FILE:-$PWD/worker/ssh-keys/authorized_keys}"
+mkdir -p "$(dirname "$AUTHORIZED_KEYS_FILE")"
+cp "$KEY_PATH.pub" "$AUTHORIZED_KEYS_FILE"
+export BARBAROSSA_AUTHORIZED_KEYS_FILE="$AUTHORIZED_KEYS_FILE"
 
 # ─── 4. Build & start ───
 RUNNING=$(docker ps --filter name=hermes -q 2>/dev/null | wc -l)
@@ -106,7 +107,7 @@ echo "[+] Testing SSH hermes→charlie..."
 attempt=0
 while [ $attempt -lt 10 ]; do
     if docker exec hermes su -s /bin/sh hermes -c \
-        "ssh -i /opt/data/ssh/key -o StrictHostKeyChecking=no -o ConnectTimeout=3 root@charlie 'echo OK'" 2>&1 | grep -q "^OK"; then
+        "ssh -i /opt/data/ssh/key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=3 root@charlie 'echo OK'" 2>&1 | grep -q "^OK"; then
         echo "    ✅ SSH pipe healthy"
         break
     fi

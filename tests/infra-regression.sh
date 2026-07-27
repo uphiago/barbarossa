@@ -57,6 +57,8 @@ contains "Hermes waits for healthy workers" docker-compose.yml \
 for worker in charlie oscar papa; do
     contains "$worker persists SSH host keys" docker-compose.yml \
         "${worker}-ssh:/etc/ssh"
+    contains "$worker image does not ship SSH host keys" \
+        "workers/$worker/Dockerfile" 'rm -f /etc/ssh/ssh_host_\*'
 done
 
 contains "Tor entrypoint traps termination" workers/papa/tor-entrypoint.sh \
@@ -65,11 +67,15 @@ contains "Tor entrypoint supervises children" workers/papa/tor-entrypoint.sh \
     'wait -n'
 contains "Tor health uses remote DNS through SOCKS" docker-compose.yml \
     '--socks5-hostname'
+contains "Papa persists Tor state" docker-compose.yml \
+    'papa-tor:/var/lib/tor'
 
 contains "production workflow receives worker key secret" \
     .github/workflows/build-deploy.yml 'BARBAROSSA_WORKER_SSH_KEY_B64'
 contains "production workflow validates worker private key" \
     .github/workflows/build-deploy.yml 'ssh-keygen -y'
+contains "production key rotation has a transition file" \
+    .github/workflows/build-deploy.yml 'AUTHORIZED_KEYS\.transition'
 
 for dockerfile in workers/charlie/Dockerfile workers/oscar/Dockerfile; do
     contains "$dockerfile verifies archive checksums" "$dockerfile" \

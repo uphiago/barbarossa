@@ -106,6 +106,8 @@ jobs:
       !contains(needs.*.result, 'failure') &&
       !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
+    env:
+      BARBAROSSA_WORKER_SSH_KEY_B64: ${{ secrets.BARBAROSSA_WORKER_SSH_KEY_B64 }}
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to OVH
@@ -114,21 +116,80 @@ jobs:
           host: ${{ secrets.OVH_HOST }}
           username: ${{ secrets.OVH_USER }}
           key: ${{ secrets.OVH_SSH_KEY }}
+          envs: BARBAROSSA_WORKER_SSH_KEY_B64
           script: |
+            set -eu
             if ! command -v docker >/dev/null 2>&1; then
               curl -fsSL https://get.docker.com | sudo sh
               sudo usermod -aG docker $USER
             fi
             DOCKER="docker"
             docker ps >/dev/null 2>&1 || DOCKER="sudo docker"
+
+            if [ -z "${BARBAROSSA_WORKER_SSH_KEY_B64:-}" ]; then
+              echo "Missing BARBAROSSA_WORKER_SSH_KEY_B64 GitHub secret" >&2
+              exit 1
+            fi
+
+            RUNTIME_DIR="$HOME/.config/barbarossa"
+            WORKER_KEY="$RUNTIME_DIR/worker_key"
+            AUTHORIZED_KEYS="$RUNTIME_DIR/authorized_keys"
+            install -d -m 700 "$RUNTIME_DIR"
+            umask 077
+            printf '%s' "$BARBAROSSA_WORKER_SSH_KEY_B64" |
+              base64 --decode > "$WORKER_KEY.next"
+            ssh-keygen -y -f "$WORKER_KEY.next" > "$AUTHORIZED_KEYS.next"
+
+            if [ -f "$AUTHORIZED_KEYS" ]; then
+              cat "$AUTHORIZED_KEYS" "$AUTHORIZED_KEYS.next" |
+                awk '!seen[$0]++' > "$AUTHORIZED_KEYS.transition"
+              mv "$AUTHORIZED_KEYS.transition" "$AUTHORIZED_KEYS"
+            else
+              cp "$AUTHORIZED_KEYS.next" "$AUTHORIZED_KEYS"
+            fi
+
+            mv "$WORKER_KEY.next" "$WORKER_KEY"
+            chmod 600 "$WORKER_KEY"
+            chmod 644 "$AUTHORIZED_KEYS"
+
             echo "${{ secrets.GHCR_PAT }}" | $DOCKER login ghcr.io -u ${{ github.actor }} --password-stdin
             if [ ! -d ~/barbarossa ]; then
               git clone https://x-access-token:${{ secrets.GHCR_PAT }}@github.com/uphiago/barbarossa.git ~/barbarossa
             fi
             cd ~/barbarossa
             git pull https://x-access-token:${{ secrets.GHCR_PAT }}@github.com/uphiago/barbarossa.git
+
+            touch .env
+            chmod 600 .env
+            if grep -q '^BARBAROSSA_AUTHORIZED_KEYS_FILE=' .env; then
+              sed -i "s|^BARBAROSSA_AUTHORIZED_KEYS_FILE=.*|BARBAROSSA_AUTHORIZED_KEYS_FILE=$AUTHORIZED_KEYS|" .env
+            else
+              printf '\nBARBAROSSA_AUTHORIZED_KEYS_FILE=%s\n' "$AUTHORIZED_KEYS" >> .env
+            fi
+
+            FIRST_HOST_KEY_VOLUME=0
+            $DOCKER volume inspect barbarossa_charlie-ssh >/dev/null 2>&1 ||
+              FIRST_HOST_KEY_VOLUME=1
+
             $DOCKER compose pull charlie oscar papa 2>/dev/null || true
             $DOCKER compose up -d --remove-orphans
+
+            $DOCKER exec hermes mkdir -p /opt/data/ssh
+            $DOCKER cp "$WORKER_KEY" hermes:/opt/data/ssh/key.next
+            $DOCKER exec hermes sh -c \
+              'chown hermes:hermes /opt/data/ssh/key.next &&
+               chmod 600 /opt/data/ssh/key.next &&
+               mv /opt/data/ssh/key.next /opt/data/ssh/key'
+            mv "$AUTHORIZED_KEYS.next" "$AUTHORIZED_KEYS"
+            chmod 644 "$AUTHORIZED_KEYS"
+
+            if [ "$FIRST_HOST_KEY_VOLUME" -eq 1 ]; then
+              $DOCKER exec -u hermes hermes sh -c \
+                'for host in charlie oscar papa; do
+                   ssh-keygen -R "$host" 2>/dev/null || true
+                 done'
+            fi
+
             # First-run config
             $DOCKER exec hermes hermes config set terminal.backend ssh 2>/dev/null || true
             $DOCKER exec hermes hermes config set model.provider deepseek 2>/dev/null || true

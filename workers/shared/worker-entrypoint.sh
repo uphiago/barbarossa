@@ -5,7 +5,7 @@ SSH_DIR=/root/.ssh
 AUTH_KEYS=$SSH_DIR/authorized_keys
 KEY_MOUNT=/ssh-keys
 
-if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
+if [ ! -f /etc/ssh/ssh_host_ed25519_key ]; then
     echo "[+] Generating SSH host keys..."
     ssh-keygen -A >/dev/null 2>&1
 fi
@@ -23,9 +23,9 @@ fi
 if [ -f "$AUTH_KEYS" ]; then
     echo "[+] SSH keys found ($(wc -l < $AUTH_KEYS) keys), access configured"
 else
-    echo "[!] WARNING: No SSH keys found!"
+    echo "[!] No SSH authorized keys found; refusing to start." >&2
+    exit 1
 fi
 
 echo "[+] Starting SSHD..."
 exec "$@"
-# trigger deploy

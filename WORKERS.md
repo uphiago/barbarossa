@@ -37,10 +37,11 @@ file, socat, jq, full Python with all libs
 ```
 
 ### papa (persist)
-Alpine. All outbound through Tor. Disposable — circuit changes on restart.
+Alpine. Tor is available through the local SOCKS5 listener. Commands must opt
+into the proxy; ordinary outbound traffic is still direct.
 
 ```
-nmap, python3, curl, tor, torsocks (SOCKS5 on :9050)
+nmap, python3, curl, tor (SOCKS5 on :9050)
 ```
 
 ## Flow
@@ -58,13 +59,15 @@ charlie → re-scan inside   → new perspective, repeat
 ssh root@charlie
 ssh root@oscar
 ssh root@papa
-ssh root@papa "torsocks curl https://ifconfig.me"
+ssh root@papa \
+  "curl --socks5-hostname 127.0.0.1:9050 https://check.torproject.org/api/ip"
 ```
 
 ## Startup
 
 ```bash
-docker compose up -d   # sobe todos os workers + hermes, cabe em 4GB
+./setup.sh
 ```
 
-⚠️ Papa usa Tor. Se `torsocks` travar, o circuito Tor nao estabelece nessa rede — implante em VPS.
+The Papa healthcheck validates SSH, SOCKS5, remote DNS through the proxy, and a
+Tor exit response.
