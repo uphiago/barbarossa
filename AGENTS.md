@@ -47,3 +47,7 @@ DeepSeek v4 Flash. All auxiliary/delegation models use DeepSeek.
 - Default terminal is SSH'd into charlie — commands run there
 - File tools (read_file, write_file) run on hermes local filesystem at `/opt/data/`
 - For worker files, use terminal + shell commands (cat, echo, etc.)
+- OpenStack metadata is blocked from every container
+- Containers run with bounded memory, PIDs, logs, and `no-new-privileges`
+- Papa offers Tor but does not force all traffic through it; use SOCKS5 or
+  `torsocks` explicitly when anonymity is required
