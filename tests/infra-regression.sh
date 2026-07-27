@@ -114,6 +114,19 @@ fi
 
 contains "production workflow receives worker key secret" \
     .github/workflows/build-deploy.yml 'BARBAROSSA_WORKER_SSH_KEY_B64'
+absent "workflow actions are pinned to immutable commits" \
+    .github/workflows/build-deploy.yml \
+    'uses: [A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@v[0-9]'
+contains "checkout is pinned" .github/workflows/build-deploy.yml \
+    'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+contains "paths-filter is pinned" .github/workflows/build-deploy.yml \
+    'dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706'
+contains "registry login is pinned" .github/workflows/build-deploy.yml \
+    'docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7'
+contains "container build is pinned" .github/workflows/build-deploy.yml \
+    'docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a'
+contains "SSH deploy is pinned" .github/workflows/build-deploy.yml \
+    'appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2'
 contains "production workflow supports manual key rotation" \
     .github/workflows/build-deploy.yml '^  workflow_dispatch:'
 contains "production workflow validates worker private key" \
