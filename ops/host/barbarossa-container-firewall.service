@@ -1,0 +1,13 @@
+[Unit]
+Description=Block Barbarossa containers from cloud metadata
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/barbarossa-container-firewall start
+ExecStop=/usr/local/sbin/barbarossa-container-firewall stop
+
+[Install]
+WantedBy=multi-user.target

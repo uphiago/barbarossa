@@ -46,10 +46,10 @@ absent "dashboard has no weak signing-secret fallback" docker-compose.yml \
     'barbarossa-dashboard-secret-change-me'
 
 healthchecks=$(grep -c '^    healthcheck:' docker-compose.yml || true)
-if [ "$healthchecks" -eq 3 ]; then
-    pass "all workers define healthchecks"
+if [ "$healthchecks" -eq 4 ]; then
+    pass "all services define healthchecks"
 else
-    fail "all workers define healthchecks"
+    fail "all services define healthchecks"
 fi
 
 contains "Hermes waits for healthy workers" docker-compose.yml \
@@ -74,6 +74,43 @@ contains "Tor health uses remote DNS through SOCKS" docker-compose.yml \
     '--socks5-hostname'
 contains "Papa persists Tor state" docker-compose.yml \
     'papa-tor:/var/lib/tor'
+
+logging_blocks=$(grep -c '^    logging:' docker-compose.yml || true)
+if [ "$logging_blocks" -eq 4 ]; then
+    pass "all services bound Docker logs"
+else
+    fail "all services bound Docker logs"
+fi
+
+pids_limits=$(grep -c '^    pids_limit:' docker-compose.yml || true)
+if [ "$pids_limits" -eq 4 ]; then
+    pass "all services define PID limits"
+else
+    fail "all services define PID limits"
+fi
+
+memory_limits=$(grep -c '^    mem_limit:' docker-compose.yml || true)
+if [ "$memory_limits" -eq 4 ]; then
+    pass "all services define memory limits"
+else
+    fail "all services define memory limits"
+fi
+
+no_new_privileges=$(grep -c '^      - no-new-privileges:true$' \
+    docker-compose.yml || true)
+if [ "$no_new_privileges" -eq 4 ]; then
+    pass "all services prevent privilege escalation"
+else
+    fail "all services prevent privilege escalation"
+fi
+
+max_log_sizes=$(grep -c '^        max-size: "10m"$' docker-compose.yml || true)
+max_log_files=$(grep -c '^        max-file: "3"$' docker-compose.yml || true)
+if [ "$max_log_sizes" -eq 4 ] && [ "$max_log_files" -eq 4 ]; then
+    pass "all services rotate Docker logs"
+else
+    fail "all services rotate Docker logs"
+fi
 
 contains "production workflow receives worker key secret" \
     .github/workflows/build-deploy.yml 'BARBAROSSA_WORKER_SSH_KEY_B64'

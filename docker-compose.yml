@@ -18,6 +18,15 @@ services:
     container_name: charlie
     hostname: charlie
     restart: unless-stopped
+    mem_limit: 1g
+    pids_limit: 512
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "127.0.0.1:2222:22"
     volumes:
@@ -44,6 +53,15 @@ services:
     container_name: oscar
     hostname: oscar
     restart: unless-stopped
+    mem_limit: 1g
+    pids_limit: 512
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - ${BARBAROSSA_AUTHORIZED_KEYS_FILE:?set BARBAROSSA_AUTHORIZED_KEYS_FILE}:/ssh-keys/authorized_keys:ro
       - oscar-data:/root/output
@@ -67,6 +85,15 @@ services:
     container_name: papa
     hostname: papa
     restart: unless-stopped
+    mem_limit: 512m
+    pids_limit: 256
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - ${BARBAROSSA_AUTHORIZED_KEYS_FILE:?set BARBAROSSA_AUTHORIZED_KEYS_FILE}:/ssh-keys/authorized_keys:ro
       - papa-data:/root/output
@@ -93,6 +120,15 @@ services:
     container_name: hermes
     hostname: hermes
     restart: unless-stopped
+    mem_limit: 1g
+    pids_limit: 256
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     command: gateway run
     depends_on:
       charlie:
@@ -120,6 +156,17 @@ services:
       - HERMES_DASHBOARD_BASIC_AUTH_SECRET=${DASHBOARD_SECRET:?set DASHBOARD_SECRET}
     networks:
       - barbarossa-net
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -fsS --max-time 5
+          -u "$$HERMES_DASHBOARD_BASIC_AUTH_USERNAME:$$HERMES_DASHBOARD_BASIC_AUTH_PASSWORD"
+          http://127.0.0.1:9119/ >/dev/null
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
 networks:
   barbarossa-net:

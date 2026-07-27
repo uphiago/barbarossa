@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly comment="barbarossa-block-cloud-metadata"
+
+rule() {
+    local operation=$1 command=$2 destination=$3
+
+    if ! "$command" -w 5 -nL DOCKER-USER >/dev/null 2>&1; then
+        return
+    fi
+
+    if [ "$operation" = add ]; then
+        if ! "$command" -w 5 -C DOCKER-USER \
+            -d "$destination" -m comment --comment "$comment" \
+            -j REJECT >/dev/null 2>&1; then
+            "$command" -w 5 -I DOCKER-USER 1 \
+                -d "$destination" -m comment --comment "$comment" \
+                -j REJECT
+        fi
+        return
+    fi
+
+    if "$command" -w 5 -C DOCKER-USER \
+        -d "$destination" -m comment --comment "$comment" \
+        -j REJECT >/dev/null 2>&1; then
+        "$command" -w 5 -D DOCKER-USER \
+            -d "$destination" -m comment --comment "$comment" \
+            -j REJECT
+    fi
+}
+
+case "${1:-}" in
+    start)
+        rule add iptables 169.254.169.254/32
+        rule add ip6tables fe80::a9fe:a9fe/128
+        ;;
+    stop)
+        rule remove iptables 169.254.169.254/32
+        rule remove ip6tables fe80::a9fe:a9fe/128
+        ;;
+    *)
+        printf 'usage: %s {start|stop}\n' "$0" >&2
+        exit 2
+        ;;
+esac
