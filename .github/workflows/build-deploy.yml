@@ -1,6 +1,7 @@
 name: Build & Deploy Workers
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -126,30 +127,40 @@ jobs:
             DOCKER="docker"
             docker ps >/dev/null 2>&1 || DOCKER="sudo docker"
 
-            if [ -z "${BARBAROSSA_WORKER_SSH_KEY_B64:-}" ]; then
-              echo "Missing BARBAROSSA_WORKER_SSH_KEY_B64 GitHub secret" >&2
-              exit 1
-            fi
-
             RUNTIME_DIR="$HOME/.config/barbarossa"
             WORKER_KEY="$RUNTIME_DIR/worker_key"
             AUTHORIZED_KEYS="$RUNTIME_DIR/authorized_keys"
             install -d -m 700 "$RUNTIME_DIR"
             umask 077
-            printf '%s' "$BARBAROSSA_WORKER_SSH_KEY_B64" |
-              base64 --decode > "$WORKER_KEY.next"
+
+            if [ -n "${BARBAROSSA_WORKER_SSH_KEY_B64:-}" ]; then
+              printf '%s' "$BARBAROSSA_WORKER_SSH_KEY_B64" |
+                base64 --decode > "$WORKER_KEY.next"
+            elif [ -f "$WORKER_KEY" ]; then
+              cp "$WORKER_KEY" "$WORKER_KEY.next"
+            elif $DOCKER exec hermes cat /opt/data/ssh/key \
+              > "$WORKER_KEY.next" 2>/dev/null; then
+              echo "Reusing the active worker key from Hermes"
+            else
+              rm -f "$WORKER_KEY.next"
+              ssh-keygen -q -t ed25519 -N "" \
+                -C "hermes@barbarossa" -f "$WORKER_KEY.next"
+              rm -f "$WORKER_KEY.next.pub"
+              echo "Generated a worker key for this fresh deployment"
+            fi
+
+            chmod 600 "$WORKER_KEY.next"
             ssh-keygen -y -f "$WORKER_KEY.next" > "$AUTHORIZED_KEYS.next"
 
             if [ -f "$AUTHORIZED_KEYS" ]; then
               cat "$AUTHORIZED_KEYS" "$AUTHORIZED_KEYS.next" |
                 awk '!seen[$0]++' > "$AUTHORIZED_KEYS.transition"
-              mv "$AUTHORIZED_KEYS.transition" "$AUTHORIZED_KEYS"
             else
-              cp "$AUTHORIZED_KEYS.next" "$AUTHORIZED_KEYS"
+              cp "$AUTHORIZED_KEYS.next" "$AUTHORIZED_KEYS.transition"
             fi
 
-            mv "$WORKER_KEY.next" "$WORKER_KEY"
-            chmod 600 "$WORKER_KEY"
+            touch "$AUTHORIZED_KEYS"
+            cat "$AUTHORIZED_KEYS.transition" > "$AUTHORIZED_KEYS"
             chmod 644 "$AUTHORIZED_KEYS"
 
             echo "${{ secrets.GHCR_PAT }}" | $DOCKER login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -172,16 +183,35 @@ jobs:
               FIRST_HOST_KEY_VOLUME=1
 
             $DOCKER compose pull charlie oscar papa 2>/dev/null || true
-            $DOCKER compose up -d --remove-orphans
+            $DOCKER compose up -d --remove-orphans --force-recreate \
+              --wait --wait-timeout 300 charlie oscar papa
+            $DOCKER compose up -d --remove-orphans hermes
 
             $DOCKER exec hermes mkdir -p /opt/data/ssh
-            $DOCKER cp "$WORKER_KEY" hermes:/opt/data/ssh/key.next
+            $DOCKER cp "$WORKER_KEY.next" hermes:/opt/data/ssh/key.next
             $DOCKER exec hermes sh -c \
               'chown hermes:hermes /opt/data/ssh/key.next &&
-               chmod 600 /opt/data/ssh/key.next &&
-               mv /opt/data/ssh/key.next /opt/data/ssh/key'
-            mv "$AUTHORIZED_KEYS.next" "$AUTHORIZED_KEYS"
+               chmod 600 /opt/data/ssh/key.next'
+
+            for host in charlie oscar papa; do
+              $DOCKER exec -u hermes hermes \
+                ssh -i /opt/data/ssh/key.next \
+                  -o StrictHostKeyChecking=no \
+                  -o UserKnownHostsFile=/dev/null \
+                  -o ConnectTimeout=5 \
+                  "root@$host" true
+            done
+
+            $DOCKER exec hermes mv /opt/data/ssh/key.next /opt/data/ssh/key
+            mv "$WORKER_KEY.next" "$WORKER_KEY"
+            chmod 600 "$WORKER_KEY"
+            cat "$AUTHORIZED_KEYS.next" > "$AUTHORIZED_KEYS"
             chmod 644 "$AUTHORIZED_KEYS"
+            for worker in charlie oscar papa; do
+              $DOCKER exec "$worker" sh -c \
+                'cp /ssh-keys/authorized_keys /root/.ssh/authorized_keys &&
+                 chmod 600 /root/.ssh/authorized_keys'
+            done
 
             if [ "$FIRST_HOST_KEY_VOLUME" -eq 1 ]; then
               $DOCKER exec -u hermes hermes sh -c \

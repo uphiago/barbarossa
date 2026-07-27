@@ -7,8 +7,7 @@ repository, which is the source used by GitHub Actions and the OVH deployment.
 The separate `infra/images` and `infra/compose` copies will be removed.
 
 `infra/agent-image-bench` is explicitly out of scope and must remain unchanged.
-No production SSH key is rotated until the replacement GitHub secret is
-configured.
+No production SSH key is rotated as part of this change.
 
 ## Canonical layout
 
@@ -20,9 +19,11 @@ configured.
 - `barbarossa/setup.sh` is only a local-development bootstrap. It generates or
   selects local SSH key material outside Git and installs only the public
   authorized key under the ignored runtime directory.
-- `.github/workflows/build-deploy.yml` is the production bootstrap. It receives
-  the worker private key through `BARBAROSSA_WORKER_SSH_KEY_B64`, derives its
-  public key on the OVH host, and stores both outside the Git clone.
+- `.github/workflows/build-deploy.yml` is the production bootstrap. It reuses
+  the active worker key or creates one on a fresh host. An optional
+  `BARBAROSSA_WORKER_SSH_KEY_B64` secret can provide a future replacement. The
+  workflow derives the public key on the OVH host and stores both outside the
+  Git clone.
 
 The obsolete `infra/images` and `infra/compose` trees are deleted after their
 unique behavior has either been rejected as stale or incorporated into the
@@ -34,12 +35,14 @@ Dashboard username, password, and signing secret are required configuration.
 The example environment file contains no working default credentials, and
 setup fails before starting containers when required values are absent.
 
-Production deploys fail before changing containers when the worker key secret
-is absent or invalid. The decoded private key is written with mode `0600` under
-`~/.config/barbarossa`, its public key is derived with `ssh-keygen`, and the
-non-secret authorized-keys path is persisted in the production `.env`. After
-containers are recreated, the workflow installs the private key into the
-Hermes data volume with restrictive ownership and permissions.
+Production deploys use a supplied replacement key, the key already stored
+under `~/.config/barbarossa`, or the active key in Hermes, in that order. A
+fresh installation generates a key on the OVH host. The public key is derived
+with `ssh-keygen`, and the authorized-keys path is persisted in production
+`.env`. A replacement is accepted alongside the previous public key until all
+workers have restarted and Hermes proves the candidate can access each one.
+Only then does the workflow promote the new private key and remove the previous
+public key.
 
 Each worker receives an SSH healthcheck. Hermes waits for healthy workers
 instead of only waiting for container creation.

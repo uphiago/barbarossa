@@ -4,7 +4,7 @@
 
 **Goal:** Make `barbarossa` the only worker-infrastructure source, with clean local and production key bootstraps, supervised Tor, persistent SSH identity, healthchecks, and reproducible tool downloads.
 
-**Architecture:** Local development continues through `setup.sh`; production receives a base64-encoded worker key through GitHub Actions and stores runtime material outside the clone. Docker Compose mounts the selected public key, persists worker host keys, and gates Hermes on worker health. The obsolete outer Compose and worker images are removed.
+**Architecture:** Local development continues through `setup.sh`; production reuses its active key by default and accepts an optional base64-encoded replacement through GitHub Actions. Runtime material stays outside the clone. Docker Compose mounts the selected public key, persists worker host keys, and gates Hermes on worker health. The obsolete outer Compose and worker images are removed.
 
 **Tech Stack:** Bash, Docker Compose, Dockerfiles, GitHub Actions, OpenSSH, Tor
 
@@ -33,7 +33,7 @@
 
 - [x] **Step 2: Add `BARBAROSSA_AUTHORIZED_KEYS_FILE` to Compose and mount that external public-key file into every worker.**
 
-- [x] **Step 3: Add production workflow handling for `BARBAROSSA_WORKER_SSH_KEY_B64`: decode under `~/.config/barbarossa`, validate with `ssh-keygen`, derive `authorized_keys`, persist the public path in `.env`, deploy, then atomically install the private key into Hermes.**
+- [x] **Step 3: Add optional production workflow handling for `BARBAROSSA_WORKER_SSH_KEY_B64`: reuse the active key when absent, validate a candidate with `ssh-keygen`, deploy with both public keys during transition, test every worker, then atomically promote the candidate.**
 
 - [x] **Step 4: Require `DASHBOARD_USER`, `DASHBOARD_PASS`, and `DASHBOARD_SECRET` in Compose without fallback values.**
 
@@ -96,11 +96,10 @@
 **Files:**
 - Modify: none
 
-- [x] **Step 1: Generate a new ED25519 worker key under `~/.ssh`, outside all repositories, and produce its one-line base64 secret value without printing the private key.**
+- [x] **Step 1: Confirm the current OVH worker key remains active and the optional replacement secret is not configured.**
 
 - [x] **Step 2: Run all local regression, syntax, Compose, build, and secret scans.**
 
 - [x] **Step 3: Inspect the final Git diff and commit implementation changes.**
 
 - [x] **Step 4: Recheck OVH container status and logs without deploying or rotating the active key.**
-

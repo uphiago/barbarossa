@@ -4,11 +4,20 @@ set -euo pipefail
 SSH_DIR=/root/.ssh
 AUTH_KEYS=$SSH_DIR/authorized_keys
 KEY_MOUNT=/ssh-keys
+HOST_KEYS_DIR=/ssh-host-keys
 
-if [ ! -f /etc/ssh/ssh_host_ed25519_key ]; then
+mkdir -p "$HOST_KEYS_DIR"
+if [ ! -f "$HOST_KEYS_DIR/ssh_host_ed25519_key" ]; then
     echo "[+] Generating SSH host keys..."
-    ssh-keygen -A >/dev/null 2>&1
+    ssh-keygen -q -t ed25519 -N "" \
+        -f "$HOST_KEYS_DIR/ssh_host_ed25519_key"
 fi
+chmod 600 "$HOST_KEYS_DIR/ssh_host_ed25519_key"
+chmod 644 "$HOST_KEYS_DIR/ssh_host_ed25519_key.pub"
+ln -sf "$HOST_KEYS_DIR/ssh_host_ed25519_key" \
+    /etc/ssh/ssh_host_ed25519_key
+ln -sf "$HOST_KEYS_DIR/ssh_host_ed25519_key.pub" \
+    /etc/ssh/ssh_host_ed25519_key.pub
 
 if [ -d "$KEY_MOUNT" ]; then
     echo "[+] Copying authorized_keys from $KEY_MOUNT"

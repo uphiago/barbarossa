@@ -56,10 +56,15 @@ contains "Hermes waits for healthy workers" docker-compose.yml \
     'condition: service_healthy'
 for worker in charlie oscar papa; do
     contains "$worker persists SSH host keys" docker-compose.yml \
-        "${worker}-ssh:/etc/ssh"
+        "${worker}-ssh:/ssh-host-keys"
     contains "$worker image does not ship SSH host keys" \
         "workers/$worker/Dockerfile" 'rm -f /etc/ssh/ssh_host_\*'
 done
+contains "worker entrypoint uses the dedicated host-key directory" \
+    workers/shared/worker-entrypoint.sh 'HOST_KEYS_DIR=/ssh-host-keys'
+contains "worker entrypoint links the persisted host key" \
+    workers/shared/worker-entrypoint.sh \
+    'ln -sf "\$HOST_KEYS_DIR/ssh_host_ed25519_key"'
 
 contains "Tor entrypoint traps termination" workers/papa/tor-entrypoint.sh \
     '^trap .*TERM'
@@ -72,10 +77,43 @@ contains "Papa persists Tor state" docker-compose.yml \
 
 contains "production workflow receives worker key secret" \
     .github/workflows/build-deploy.yml 'BARBAROSSA_WORKER_SSH_KEY_B64'
+contains "production workflow supports manual key rotation" \
+    .github/workflows/build-deploy.yml '^  workflow_dispatch:'
 contains "production workflow validates worker private key" \
     .github/workflows/build-deploy.yml 'ssh-keygen -y'
+absent "production worker key secret is optional" \
+    .github/workflows/build-deploy.yml \
+    'Missing BARBAROSSA_WORKER_SSH_KEY_B64 GitHub secret'
+contains "README documents optional production key rotation" README.md \
+    'The optional'
+absent "README does not require a production key secret" README.md \
+    'requires the base64-encoded private worker key'
+contains "production can reuse the active Hermes key" \
+    .github/workflows/build-deploy.yml \
+    '\$DOCKER exec hermes cat /opt/data/ssh/key'
+contains "failed active-key reads remove the empty candidate" \
+    .github/workflows/build-deploy.yml \
+    'rm -f "\$WORKER_KEY\.next"$'
 contains "production key rotation has a transition file" \
     .github/workflows/build-deploy.yml 'AUTHORIZED_KEYS\.transition'
+contains "production updates authorized keys in place" \
+    .github/workflows/build-deploy.yml \
+    'cat "\$AUTHORIZED_KEYS\.transition" > "\$AUTHORIZED_KEYS"'
+contains "production recreates workers for key transition" \
+    .github/workflows/build-deploy.yml \
+    '--force-recreate'
+contains "production waits for worker health" \
+    .github/workflows/build-deploy.yml \
+    '--wait --wait-timeout [0-9]+ charlie oscar papa'
+contains "production tests the candidate key before promotion" \
+    .github/workflows/build-deploy.yml \
+    'ssh -i /opt/data/ssh/key\.next'
+contains "production tests every worker" \
+    .github/workflows/build-deploy.yml \
+    'for host in charlie oscar papa'
+contains "production installs the candidate key into Hermes" \
+    .github/workflows/build-deploy.yml \
+    '\$DOCKER cp "\$WORKER_KEY\.next" hermes:/opt/data/ssh/key\.next'
 
 for dockerfile in workers/charlie/Dockerfile workers/oscar/Dockerfile; do
     contains "$dockerfile verifies archive checksums" "$dockerfile" \

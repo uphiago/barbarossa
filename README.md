@@ -22,10 +22,11 @@ cp .env.example .env
 publishes its public key under the ignored `worker/` runtime directory, builds
 the images, and configures Hermes.
 
-Production is deployed by `.github/workflows/build-deploy.yml`. The workflow
-requires the base64-encoded private worker key in the
-`BARBAROSSA_WORKER_SSH_KEY_B64` GitHub secret. It derives the public key on the
-OVH host and keeps all key material outside the clone.
+Production is deployed by `.github/workflows/build-deploy.yml`. On the first
+deployment, the workflow reuses the active Hermes key when available or
+generates one under `~/.config/barbarossa` on the OVH host. The optional
+`BARBAROSSA_WORKER_SSH_KEY_B64` GitHub secret can supply a replacement key for
+a later, manually dispatched rotation. Key material remains outside the clone.
 
 ## Workers
 

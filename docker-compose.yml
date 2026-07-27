@@ -23,7 +23,7 @@ services:
     volumes:
       - ${BARBAROSSA_AUTHORIZED_KEYS_FILE:?set BARBAROSSA_AUTHORIZED_KEYS_FILE}:/ssh-keys/authorized_keys:ro
       - charlie-data:/root
-      - charlie-ssh:/etc/ssh
+      - charlie-ssh:/ssh-host-keys
       - hermes-data:/hermes
     environment:
       - TZ=America/Sao_Paulo
@@ -47,7 +47,7 @@ services:
     volumes:
       - ${BARBAROSSA_AUTHORIZED_KEYS_FILE:?set BARBAROSSA_AUTHORIZED_KEYS_FILE}:/ssh-keys/authorized_keys:ro
       - oscar-data:/root/output
-      - oscar-ssh:/etc/ssh
+      - oscar-ssh:/ssh-host-keys
     environment:
       - TZ=America/Sao_Paulo
     networks:
@@ -70,7 +70,7 @@ services:
     volumes:
       - ${BARBAROSSA_AUTHORIZED_KEYS_FILE:?set BARBAROSSA_AUTHORIZED_KEYS_FILE}:/ssh-keys/authorized_keys:ro
       - papa-data:/root/output
-      - papa-ssh:/etc/ssh
+      - papa-ssh:/ssh-host-keys
       - papa-tor:/var/lib/tor
     environment:
       - TZ=America/Sao_Paulo
