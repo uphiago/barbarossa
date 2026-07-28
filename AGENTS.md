@@ -16,6 +16,14 @@ Forge and Recon do not share a Docker network. Hermes reaches each worker
 through the hidden `barbarossa` MCP server. Never attempt direct or interactive
 SSH and never bypass the MCP job protocol.
 
+## Explicit Model Requests
+
+The configured default is DeepSeek V4 Flash. When a user names a requested
+model, first report the effective model. If that requested model is unavailable,
+ask for confirmation before continuing with any fallback; never silently
+substitute the default model. Do not change the global model configuration to
+satisfy a one-off request.
+
 ## Routing
 
 - Generic execution: `runtime_execute`

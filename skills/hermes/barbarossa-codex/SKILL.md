@@ -18,6 +18,9 @@ Forge tool. Pass only staged absolute paths to the router.
 - Use `media_image_edit` with exactly one staged input image.
 - Poll the returned job rather than starting another copy.
 - Accept result paths only beneath `/opt/data/barbarossa-results/<job_id>`.
+- Do not read artifacts directly with `read_file` or the terminal. Use
+  `job_result` after a terminal job status, then summarize the returned
+  artifact metadata or content.
 
 Forge runs Codex GPT-5.6 Luna at medium reasoning. Codex may use one internal
 subagent when useful. Promote valuable source or artifacts to a private Git

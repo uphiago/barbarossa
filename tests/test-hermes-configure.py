@@ -108,3 +108,12 @@ def test_install_context_replaces_only_barbarossa_assets(
     assert (
         data / "skills" / "bundled" / "SKILL.md"
     ).read_text(encoding="utf-8") == "keep"
+
+
+def test_agent_context_requires_confirmation_before_model_fallback() -> None:
+    context = Path(__file__).parents[1] / "AGENTS.md"
+
+    text = context.read_text(encoding="utf-8")
+
+    assert "requested model" in text
+    assert "ask for confirmation" in text
