@@ -6,10 +6,16 @@ runtime="${BARBAROSSA_RUNTIME_DIR:-$HOME/.config/barbarossa/runtime}"
 docker="${DOCKER:-docker}"
 
 compose() {
-  "$docker" compose \
-    --env-file "$root/.env" \
-    --env-file "$runtime/compose.env" \
-    -f "$root/docker-compose.yml" "$@"
+  if [ -f "$runtime/compose.env" ]; then
+    "$docker" compose \
+      --env-file "$root/.env" \
+      --env-file "$runtime/compose.env" \
+      -f "$root/docker-compose.yml" "$@"
+  else
+    "$docker" compose \
+      --env-file "$root/.env" \
+      -f "$root/docker-compose.yml" "$@"
+  fi
 }
 
 diff -u \
@@ -78,7 +84,7 @@ router result "$generated_id" | python3 -c \
 submit_and_assert_artifact network.fetch '"IsTor":false' \
   --url 'https://check.torproject.org/api/ip'
 submit_and_assert_log network.tor '"IsTor":true' \
-  --command 'curl -fsS https://check.torproject.org/api/ip'
+  --command 'curl -fsS --max-time 60 https://check.torproject.org/api/ip'
 
 compose exec -T forge id -u | grep -Fx 10001
 compose exec -T recon id -u | grep -Fx 10002

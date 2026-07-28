@@ -506,6 +506,15 @@ def redact(data: bytes) -> bytes:
         for value in os.environ.get("BARBAROSSA_REDACT_VALUES", "").split("\n")
         if len(value) >= 4
     ]
+    for variable, default_path in (
+        ("CODEX_ACCESS_TOKEN", "/run/secrets/codex_access_token"),
+        ("GH_TOKEN", "/run/secrets/github_token"),
+    ):
+        secret_path = Path(os.environ.get(f"{variable}_FILE", default_path))
+        if secret_path.is_file():
+            value = secret_path.read_text(encoding="utf-8").removesuffix("\n")
+            if len(value) >= 4 and "\n" not in value and "\r" not in value:
+                values.append(value)
     for value in values:
         text = text.replace(value, "[REDACTED]")
     text = re.sub(

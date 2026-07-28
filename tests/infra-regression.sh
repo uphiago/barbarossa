@@ -122,4 +122,11 @@ for forbidden in StrictHostKeyChecking=no ssh-keyscan; do
   fi
 done
 
+test ! -e workers
+if grep -R -Eiq '\b(charlie|oscar|papa)\b' \
+  docker-compose.yml README.md WORKERS.md AGENTS.md setup.sh; then
+  printf 'legacy worker name remains in active infrastructure or docs\n' >&2
+  exit 1
+fi
+
 printf 'all infra regression assertions passed\n'
