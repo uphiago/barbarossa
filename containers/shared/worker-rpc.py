@@ -150,6 +150,20 @@ def job_environment(capability: str) -> dict[str, str]:
             "CODEX_HOME",
             str(WORKER_HOME / ".codex"),
         )
+        for variable, default_path in (
+            ("CODEX_ACCESS_TOKEN", "/run/secrets/codex_access_token"),
+            ("GH_TOKEN", "/run/secrets/github_token"),
+        ):
+            secret_path = Path(
+                os.environ.get(f"{variable}_FILE", default_path)
+            )
+            if secret_path.is_file():
+                value = secret_path.read_text(encoding="utf-8").removesuffix(
+                    "\n"
+                )
+                if not value or "\n" in value or "\r" in value:
+                    raise ValueError(f"{variable} secret is malformed")
+                environment[variable] = value
     return environment
 
 
@@ -186,6 +200,8 @@ def build_argv(job: JobPaths, request: dict[str, Any]) -> list[str]:
         return [
             "codex",
             "exec",
+            "--strict-config",
+            "--skip-git-repo-check",
             "--json",
             "--output-last-message",
             str(job.outputs / "final.txt"),
@@ -198,12 +214,14 @@ def build_argv(job: JobPaths, request: dict[str, Any]) -> list[str]:
         prompt = require_text(request, "prompt")
         if capability == "media.image.edit":
             prompt = (
-                f"{prompt}\nUse the image generation tool to edit {path}. "
+                f"$imagegen {prompt}\nEdit the attached image at {path}. "
                 f"Save the final image under {job.outputs}."
             )
         return [
             "codex",
             "exec",
+            "--strict-config",
+            "--skip-git-repo-check",
             "--json",
             "--output-last-message",
             str(job.outputs / "final.txt"),
@@ -215,13 +233,15 @@ def build_argv(job: JobPaths, request: dict[str, Any]) -> list[str]:
         ]
     if capability == "media.image.generate":
         prompt = (
-            f"{require_text(request, 'prompt')}\n"
-            "Use the image generation tool and save the final image under "
+            f"$imagegen {require_text(request, 'prompt')}\n"
+            "Save the final image under "
             f"{job.outputs}."
         )
         return [
             "codex",
             "exec",
+            "--strict-config",
+            "--skip-git-repo-check",
             "--json",
             "--output-last-message",
             str(job.outputs / "final.txt"),
@@ -669,6 +689,12 @@ def main() -> int:
         return 0
     if command == "download" and len(sys.argv) == 3:
         sys.stdout.buffer.write(create_download(validate_job_id(sys.argv[2])))
+        return 0
+    if command == "self-test" and len(sys.argv) == 2:
+        validate_job_id("job_runtime_01J00000000000000000000000")
+        if not WORKSPACE_ROOT.is_absolute() or not WORKER_HOME.is_absolute():
+            raise ValueError("worker paths must be absolute")
+        sys.stdout.write('{"status":"ok"}\n')
         return 0
     raise ValueError("unsupported worker command")
 
