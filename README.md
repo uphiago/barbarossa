@@ -11,7 +11,7 @@ Telegram / API
 ```
 
 - **Hermes** plans and routes with DeepSeek V4 Flash. It can run up to three
-  child tasks in parallel.
+  child tasks in parallel. DeepSeek runs through its native API endpoint.
 - **Forge** provides one general runtime lane and one Codex lane. The lanes can
   run concurrently.
 - **Recon** provides one isolated lane for authorized network work, using
@@ -21,6 +21,10 @@ The typed MCP v2 router runs as a hidden subprocess inside the official Hermes
 image. It is packaged as an OCI artifact, but it is not a fourth service.
 Forge and Recon have no shared network, published port, Docker socket, or root
 login.
+
+The only public host service required by Barbarossa is SSH. The Hermes
+dashboard binds to `127.0.0.1:9119` and is reached through the `ssh ovh` local
+forward, not through a public Docker port.
 
 ## Capabilities
 
@@ -59,6 +63,36 @@ worker key, derives worker host trust from the mounted host-key volumes, starts
 the three services, and runs capability smoke tests. It never disables SSH
 host checking or copies a private worker key into a worker.
 
+## Verification
+
+The remote smoke test exercises runtime execution, Codex delegation and
+subagents, image inspection and generation, direct HTTP, explicit Tor, worker
+UIDs, network isolation, and secret-free logs:
+
+```bash
+ssh ovh 'cd "$HOME/barbarossa" && scripts/smoke-remote.sh'
+```
+
+To verify image routing through the orchestrator itself, first stage the image
+under `/opt/data/barbarossa-transfer` in Hermes. Then ask Hermes to inspect that
+path with `media_image_inspect`. The expected flow is:
+
+```text
+Hermes (DeepSeek)
+  -> hidden MCP media_image_inspect
+  -> Forge codex lane
+  -> Codex vision
+  -> outputs/final.txt
+  -> Hermes response
+```
+
+The dashboard is available locally while the SSH session is active:
+
+```bash
+ssh ovh
+# Open http://127.0.0.1:9119
+```
+
 ## State Model
 
 Named volumes retain Hermes jobs, Forge workspaces, Codex home, Recon
@@ -86,3 +120,9 @@ forwarding restrictions, and cloud metadata filtering.
 - [`AGENTS.md`](AGENTS.md): Hermes operating context
 - [`WORKERS.md`](WORKERS.md): capability and lane contract
 - [`docs/superpowers/specs`](docs/superpowers/specs): architecture rationale
+
+## License
+
+Barbarossa is distributed under the [MIT License](LICENSE). Use network and
+security capabilities only on systems you own or are explicitly authorized to
+test.
