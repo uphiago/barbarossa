@@ -44,6 +44,35 @@ def test_configure_preserves_unrelated_state_and_is_private(
     assert os.stat(path).st_mode & 0o777 == 0o600
 
 
+def test_configure_replaces_stale_openrouter_model_state(
+    tmp_path: Path,
+) -> None:
+    configure = load_configure()
+    path = tmp_path / "config.yaml"
+    path.write_text(
+        "model:\n"
+        "  provider: openrouter\n"
+        "  name: deepseek/deepseek-v4-flash\n"
+        "  default: deepseek/deepseek-v4-flash\n"
+        "  base_url: https://openrouter.ai/api/v1\n"
+        "  api_key: stale-provider-key\n"
+        "  api_mode: responses\n",
+        encoding="utf-8",
+    )
+
+    configure.configure(path)
+
+    result = configure.yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert result["model"] == {
+        "provider": "deepseek",
+        "name": "deepseek-v4-flash",
+        "default": "deepseek-v4-flash",
+        "base_url": "https://api.deepseek.com/v1",
+    }
+    assert result["delegation"]["provider"] == "deepseek"
+    assert result["delegation"]["model"] == "deepseek-v4-flash"
+
+
 def test_install_context_replaces_only_barbarossa_assets(
     tmp_path: Path,
 ) -> None:

@@ -83,7 +83,9 @@ grep -Fq 'supports_parallel_tool_calls": True' config/hermes/configure.py
 grep -Fq '"max_concurrent_children": 3' config/hermes/configure.py
 grep -Fq '"max_spawn_depth": 1' config/hermes/configure.py
 grep -Fq '"orchestrator_enabled": True' config/hermes/configure.py
-grep -Fq 'deepseek/deepseek-v4-flash' config/hermes/configure.py
+grep -Fq '"name": "deepseek-v4-flash"' config/hermes/configure.py
+grep -Fq '"base_url": "https://api.deepseek.com/v1"' \
+  config/hermes/configure.py
 grep -Fq 'BARBAROSSA_SSH_KEY' config/hermes/configure.py
 grep -Fq 'BARBAROSSA_KNOWN_HOSTS' config/hermes/configure.py
 grep -Fq 'BARBAROSSA_STATE_DB' config/hermes/configure.py
