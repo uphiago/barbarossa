@@ -16,10 +16,16 @@ if [ ! -f /ssh-host-keys/ssh_host_ed25519_key ]; then
 fi
 chmod 0600 /ssh-host-keys/ssh_host_ed25519_key
 chmod 0644 /ssh-host-keys/ssh_host_ed25519_key.pub
-ln -sf /ssh-host-keys/ssh_host_ed25519_key \
-  /etc/ssh/ssh_host_ed25519_key
-ln -sf /ssh-host-keys/ssh_host_ed25519_key.pub \
-  /etc/ssh/ssh_host_ed25519_key.pub
+if [ "$(readlink /etc/ssh/ssh_host_ed25519_key 2>/dev/null || true)" != \
+  /ssh-host-keys/ssh_host_ed25519_key ]; then
+  ln -sf /ssh-host-keys/ssh_host_ed25519_key \
+    /etc/ssh/ssh_host_ed25519_key
+fi
+if [ "$(readlink /etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || true)" != \
+  /ssh-host-keys/ssh_host_ed25519_key.pub ]; then
+  ln -sf /ssh-host-keys/ssh_host_ed25519_key.pub \
+    /etc/ssh/ssh_host_ed25519_key.pub
+fi
 
 install -d -o "$WORKER_USER" -g "$WORKER_USER" -m 0700 \
   "$worker_home/.ssh"

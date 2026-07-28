@@ -102,7 +102,11 @@ RUN chmod 0755 \
       /usr/local/bin/worker-ssh-dispatch \
       /usr/local/bin/worker-entrypoint \
       /usr/local/bin/tor-entrypoint \
-    && rm -f /etc/ssh/ssh_host_*
+    && rm -f /etc/ssh/ssh_host_* \
+    && ln -s /ssh-host-keys/ssh_host_ed25519_key \
+      /etc/ssh/ssh_host_ed25519_key \
+    && ln -s /ssh-host-keys/ssh_host_ed25519_key.pub \
+      /etc/ssh/ssh_host_ed25519_key.pub
 
 ENV WORKER_USER=recon \
     WORKER_KIND=recon \

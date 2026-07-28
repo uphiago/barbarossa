@@ -1,73 +1,59 @@
-# COP — Agent Routing Guide
+# Barbarossa Runtime Guide
 
-CHARLIE collects. OSCAR operates. PAPA persists. Three phases, one cluster.
+Barbarossa has three containers and three independent execution lanes:
 
-## Decision Matrix
-
-| You need to... | Worker | Why |
-|---------------|--------|-----|
-| Discover subdomains, probe live hosts | **charlie** | All scanning tools |
-| Run nuclei, fuzz parameters | **charlie** | Fast, parallel |
-| Port scan, service detection | **charlie** | nmap + scripts |
-| JS bundle scraping, secret extraction | **charlie** | Python + curl |
-| Analyze a suspicious binary | **oscar** | Only worker with gdb, xxd, file |
-| Compile a PoC exploit | **oscar** | Only worker with gcc, make |
-| Debug via core dump / strace | **oscar** | RE toolchain |
-| Probe hostile target anonymously | **papa** | Tor SOCKS5 |
-| Bypass geo-blocks / rate limits | **papa** | Different exit IP |
-| Credential testing without burning IP | **papa** | Circuit changes |
-
-## Workers
-
-### charlie (collect)
-Alpine. All scanning tools. Disposable — rebuild anytime. Output on volume.
-
-```
-nmap, masscan, subfinder, httpx, dnsx, nuclei,
-ffuf, naabu, katana, amass, python3, curl, dig
+```text
+Hermes
+├── Forge / runtime
+├── Forge / Codex
+└── Recon
 ```
 
-### oscar (operate)
-Debian. Full recon toolset + RE/compilation. Stateful — keep exploits here.
+## Forge
 
+Forge is a non-root engineering environment. Its runtime and Codex lanes can
+run concurrently, but each lane admits one job at a time.
+
+| Capability | Lane | Use |
+| --- | --- | --- |
+| `runtime.execute` | runtime | Shell, builds, conversions, general tooling |
+| `media.file.inspect` | runtime | File type and MIME inspection |
+| `code.delegate` | codex | Repository engineering through Codex |
+| `media.image.inspect` | codex | Read an image |
+| `media.image.generate` | codex | Generate an image with `$imagegen` |
+| `media.image.edit` | codex | Edit one staged image |
+
+Codex uses GPT-5.6 with medium reasoning and can create one internal subagent.
+The outer Forge container is its sandbox boundary.
+
+## Recon
+
+Recon admits one network job at a time and contains the consolidated discovery
+toolkit. Direct egress and Tor are distinct capabilities:
+
+| Capability | Route |
+| --- | --- |
+| `network.fetch` | Direct HTTP(S), fixed curl argv |
+| `network.inspect` | Direct authorized command |
+| `network.tor` | Explicit `torsocks --isolate` command |
+
+Tor listens only on `127.0.0.1:9050` inside Recon. It is not published and is
+never selected automatically.
+
+## Job Files
+
+Each worker retains:
+
+```text
+/workspace/jobs/<job_id>/
+├── inputs/
+├── outputs/
+├── request.json
+├── status.json
+├── stdout.log
+├── stderr.log
+└── result.json
 ```
-Everything from charlie PLUS:
-gdb, gcc, g++, make, cmake, strace, ltrace, xxd,
-file, socat, jq, full Python with all libs
-```
 
-### papa (persist)
-Alpine. Tor is available through the local SOCKS5 listener. Commands must opt
-into the proxy; ordinary outbound traffic is still direct.
-
-```
-nmap, python3, curl, tor (SOCKS5 on :9050)
-```
-
-## Flow
-
-```
-charlie → map the surface → subdomains, live hosts, vulnerabilities
-oscar   → exploit the vuln → compile PoC, launch, get shell
-papa    → pivot from shell → lateral movement, stay hidden
-charlie → re-scan inside   → new perspective, repeat
-```
-
-## SSH
-
-```bash
-ssh root@charlie
-ssh root@oscar
-ssh root@papa
-ssh root@papa \
-  "curl --socks5-hostname 127.0.0.1:9050 https://check.torproject.org/api/ip"
-```
-
-## Startup
-
-```bash
-./setup.sh
-```
-
-The Papa healthcheck validates SSH, SOCKS5, remote DNS through the proxy, and a
-Tor exit response.
+Hermes retains its queue database, transfer area, and downloaded results in
+its own named volume. No scheduled cleanup or backup is configured.

@@ -1,161 +1,152 @@
-# barbarossa — docker compose
-# CHARLIE (collect) + OSCAR (operate) + PAPA (persist)
-# 4GB VPS — todos rodam simultaneamente
-#
-# Local dev:   docker compose up -d --build
-# VPS deploy:  docker compose pull && docker compose up -d
-#
-# Rede interna: barbarossa-net
-#   charlie ↔ hermes (SSH)  |  oscar ↔ hermes (SSH)  |  papa ↔ hermes (SSH)
-#   host → charlie (SSH, :2222)  |  Telegram → hermes (gateway)
+name: barbarossa
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
 
 services:
-  charlie:
-    image: ghcr.io/uphiago/barbarossa-charlie:latest
+  forge:
+    <<: *service-defaults
+    image: ghcr.io/uphiago/barbarossa-forge:${BARBAROSSA_IMAGE_TAG:-latest}
     build:
       context: .
-      dockerfile: workers/charlie/Dockerfile
-    container_name: charlie
-    hostname: charlie
-    restart: unless-stopped
-    mem_limit: 1g
-    pids_limit: 512
-    security_opt:
-      - no-new-privileges:true
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    ports:
-      - "127.0.0.1:2222:22"
-    volumes:
-      - ${BARBAROSSA_AUTHORIZED_KEYS_FILE:?set BARBAROSSA_AUTHORIZED_KEYS_FILE}:/ssh-keys/authorized_keys:ro
-      - charlie-data:/root
-      - charlie-ssh:/ssh-host-keys
-      - hermes-data:/hermes
+      dockerfile: containers/forge/Dockerfile
+    hostname: forge
+    read_only: true
+    mem_limit: 1408m
+    pids_limit: 384
+    cpus: 1.50
+    cpu_shares: 1024
     environment:
-      - TZ=America/Sao_Paulo
+      TZ: America/Sao_Paulo
+      WORKER_USER: forge
+      WORKER_KIND: forge
+      WORKER_HOME: /home/forge
+      WORKSPACE_ROOT: /workspace
+      CODEX_HOME: /home/forge/.codex
+    secrets:
+      - source: worker_authorized_keys
+        target: worker_authorized_keys
+      - source: codex_access_token
+        target: codex_access_token
+    volumes:
+      - forge-workspace:/workspace
+      - forge-codex-home:/home/forge/.codex
+      - forge-host-keys:/ssh-host-keys
+      - ./config/codex/config.toml:/usr/local/share/barbarossa/codex/config.toml:ro
+      - ./skills/codex/barbarossa-artifacts/SKILL.md:/usr/local/share/barbarossa/codex/SKILL.md:ro
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=128m
+      - /run:rw,nosuid,nodev,size=16m
+      - /home/forge/.ssh:rw,noexec,nosuid,nodev,size=1m,uid=10001,gid=10001,mode=0700
     networks:
-      - barbarossa-net
+      - hermes-forge
     healthcheck:
-      test: ["CMD-SHELL", "nc -z 127.0.0.1 22"]
-      interval: 15s
+      test:
+        - CMD
+        - python3
+        - -c
+        - import socket; socket.create_connection(("127.0.0.1", 22), 3).close()
+      interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 15s
 
-  oscar:
-    image: ghcr.io/uphiago/barbarossa-oscar:latest
+  recon:
+    <<: *service-defaults
+    image: ghcr.io/uphiago/barbarossa-recon:${BARBAROSSA_IMAGE_TAG:-latest}
     build:
       context: .
-      dockerfile: workers/oscar/Dockerfile
-    container_name: oscar
-    hostname: oscar
-    restart: unless-stopped
-    mem_limit: 1g
-    pids_limit: 512
-    security_opt:
-      - no-new-privileges:true
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    volumes:
-      - ${BARBAROSSA_AUTHORIZED_KEYS_FILE:?set BARBAROSSA_AUTHORIZED_KEYS_FILE}:/ssh-keys/authorized_keys:ro
-      - oscar-data:/root/output
-      - oscar-ssh:/ssh-host-keys
-    environment:
-      - TZ=America/Sao_Paulo
-    networks:
-      - barbarossa-net
-    healthcheck:
-      test: ["CMD-SHELL", "nc -z 127.0.0.1 22"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
-  papa:
-    image: ghcr.io/uphiago/barbarossa-papa:latest
-    build:
-      context: .
-      dockerfile: workers/papa/Dockerfile
-    container_name: papa
-    hostname: papa
-    restart: unless-stopped
-    mem_limit: 512m
+      dockerfile: containers/recon/Dockerfile
+    hostname: recon
+    read_only: true
+    mem_limit: 640m
     pids_limit: 256
-    security_opt:
-      - no-new-privileges:true
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    volumes:
-      - ${BARBAROSSA_AUTHORIZED_KEYS_FILE:?set BARBAROSSA_AUTHORIZED_KEYS_FILE}:/ssh-keys/authorized_keys:ro
-      - papa-data:/root/output
-      - papa-ssh:/ssh-host-keys
-      - papa-tor:/var/lib/tor
+    cpus: 1.00
+    cpu_shares: 256
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     environment:
-      - TZ=America/Sao_Paulo
+      TZ: America/Sao_Paulo
+      WORKER_USER: recon
+      WORKER_KIND: recon
+      WORKER_HOME: /home/recon
+      WORKSPACE_ROOT: /workspace
+    secrets:
+      - source: worker_authorized_keys
+        target: worker_authorized_keys
+    volumes:
+      - recon-workspace:/workspace
+      - recon-tor-state:/var/lib/tor
+      - recon-host-keys:/ssh-host-keys
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=128m
+      - /run:rw,nosuid,nodev,size=16m
+      - /home/recon/.ssh:rw,noexec,nosuid,nodev,size=1m,uid=10002,gid=10002,mode=0700
     networks:
-      - barbarossa-net
+      - hermes-recon
     healthcheck:
       test:
         - CMD-SHELL
-        - >-
-          nc -z 127.0.0.1 22 &&
-          curl --socks5-hostname 127.0.0.1:9050 -fsS --max-time 20
-          https://check.torproject.org/api/ip | grep -q '"IsTor":true'
-      interval: 60s
-      timeout: 25s
+        - nc -z 127.0.0.1 22 && nc -z 127.0.0.1 9050
+      interval: 30s
+      timeout: 5s
       retries: 5
-      start_period: 180s
+      start_period: 60s
 
   hermes:
-    image: nousresearch/hermes-agent:latest
-    container_name: hermes
+    <<: *service-defaults
+    image: nousresearch/hermes-agent@sha256:545ef5a71b52b63aab08e29721701681d64465594ae5ffe7e860a8a758da0371
     hostname: hermes
-    restart: unless-stopped
-    mem_limit: 1g
+    mem_limit: 768m
     pids_limit: 256
-    security_opt:
-      - no-new-privileges:true
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    command: gateway run
+    cpus: 1.00
+    cpu_shares: 512
     depends_on:
-      charlie:
+      forge:
         condition: service_healthy
-      oscar:
+      recon:
         condition: service_healthy
-      papa:
-        condition: service_healthy
+    command:
+      - sh
+      - -lc
+      - >-
+        /opt/hermes/.venv/bin/python /opt/barbarossa/configure.py &&
+        exec hermes gateway run
     ports:
       - "127.0.0.1:9119:9119"
-    volumes:
-      - hermes-data:/opt/data
-    env_file:
-      - .env
     environment:
-      - TZ=America/Sao_Paulo
-      - TERMINAL_ENV=ssh
-      - TERMINAL_SSH_HOST=charlie
-      - TERMINAL_SSH_PORT=22
-      - TERMINAL_SSH_USER=root
-      - TERMINAL_SSH_KEY=/opt/data/ssh/key
-      - HERMES_DASHBOARD=1
-      - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=${DASHBOARD_USER:?set DASHBOARD_USER}
-      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${DASHBOARD_PASS:?set DASHBOARD_PASS}
-      - HERMES_DASHBOARD_BASIC_AUTH_SECRET=${DASHBOARD_SECRET:?set DASHBOARD_SECRET}
+      TZ: America/Sao_Paulo
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?set DEEPSEEK_API_KEY}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?set TELEGRAM_BOT_TOKEN}
+      TELEGRAM_ALLOWED_USERS: ${TELEGRAM_ALLOWED_USERS:-}
+      HERMES_DASHBOARD: "1"
+      HERMES_DASHBOARD_BASIC_AUTH_USERNAME: ${DASHBOARD_USER:?set DASHBOARD_USER}
+      HERMES_DASHBOARD_BASIC_AUTH_PASSWORD: ${DASHBOARD_PASS:?set DASHBOARD_PASS}
+      HERMES_DASHBOARD_BASIC_AUTH_SECRET: ${DASHBOARD_SECRET:?set DASHBOARD_SECRET}
+    secrets:
+      - source: worker_private_key
+        target: worker_key
+      - source: worker_known_hosts
+        target: known_hosts
+    volumes:
+      - hermes-state:/opt/data
+      - ${BARBAROSSA_ROUTER_BUNDLE:?set BARBAROSSA_ROUTER_BUNDLE}:/opt/barbarossa-router/barbarossa-router.pex:ro
+      - ./config/hermes/configure.py:/opt/barbarossa/configure.py:ro
+      - ./AGENTS.md:/opt/data/AGENTS.md:ro
+      - ./skills/hermes/barbarossa-routing:/opt/data/skills/barbarossa-routing:ro
+      - ./skills/hermes/barbarossa-codex:/opt/data/skills/barbarossa-codex:ro
+      - ./skills/hermes/barbarossa-network:/opt/data/skills/barbarossa-network:ro
     networks:
-      - barbarossa-net
+      - hermes-forge
+      - hermes-recon
     healthcheck:
       test:
         - CMD-SHELL
@@ -166,24 +157,29 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 45s
 
 networks:
-  barbarossa-net:
+  hermes-forge:
+    driver: bridge
+  hermes-recon:
     driver: bridge
 
 volumes:
-  charlie-data:
-  charlie-ssh:
-  oscar-data:
-  oscar-ssh:
-  papa-data:
-  papa-ssh:
-  papa-tor:
-  hermes-data:
+  hermes-state:
+  forge-workspace:
+  forge-codex-home:
+  forge-host-keys:
+  recon-workspace:
+  recon-tor-state:
+  recon-host-keys:
 
-# Hermes first-run config (applied once via setup.sh or manually):
-#   hermes config set terminal.backend ssh
-#   hermes config set model.provider deepseek
-#   hermes config set model.name deepseek/deepseek-v4-flash
-#   hermes config set model.default deepseek/deepseek-v4-flash
+secrets:
+  worker_private_key:
+    file: ${BARBAROSSA_WORKER_SSH_KEY_FILE:?set BARBAROSSA_WORKER_SSH_KEY_FILE}
+  worker_authorized_keys:
+    file: ${BARBAROSSA_AUTHORIZED_KEYS_FILE:?set BARBAROSSA_AUTHORIZED_KEYS_FILE}
+  worker_known_hosts:
+    file: ${BARBAROSSA_KNOWN_HOSTS_FILE:?set BARBAROSSA_KNOWN_HOSTS_FILE}
+  codex_access_token:
+    file: ${BARBAROSSA_CODEX_TOKEN_FILE:?set BARBAROSSA_CODEX_TOKEN_FILE}
