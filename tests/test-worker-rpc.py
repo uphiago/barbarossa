@@ -40,6 +40,27 @@ def test_runtime_environment_contains_no_secret(
     assert set(env) == {"HOME", "LANG", "PATH", "TZ"}
 
 
+def test_codex_environment_reads_only_scoped_secrets(
+    worker_rpc: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    codex_secret = tmp_path / "codex"
+    github_secret = tmp_path / "github"
+    codex_secret.write_text("codex-token\n", encoding="utf-8")
+    github_secret.write_text("github-token\n", encoding="utf-8")
+    monkeypatch.setenv("CODEX_ACCESS_TOKEN_FILE", str(codex_secret))
+    monkeypatch.setenv("GH_TOKEN_FILE", str(github_secret))
+
+    codex_env = worker_rpc.job_environment("code.delegate")
+    runtime_env = worker_rpc.job_environment("runtime.execute")
+
+    assert codex_env["CODEX_ACCESS_TOKEN"] == "codex-token"
+    assert codex_env["GH_TOKEN"] == "github-token"
+    assert "CODEX_ACCESS_TOKEN" not in runtime_env
+    assert "GH_TOKEN" not in runtime_env
+
+
 def test_codex_argv_is_not_shell_interpolated(
     worker_rpc: ModuleType,
     tmp_path: Path,
@@ -70,6 +91,28 @@ def test_fetch_argv_validates_http_url(worker_rpc: ModuleType, tmp_path: Path) -
             job,
             {"capability": "network.fetch", "url": "file:///etc/passwd"},
         )
+
+
+def test_image_generation_explicitly_invokes_imagegen(
+    worker_rpc: ModuleType,
+    tmp_path: Path,
+) -> None:
+    job = worker_rpc.workspace(tmp_path, SAFE_JOB_ID)
+    job.inputs.mkdir(parents=True)
+    job.outputs.mkdir()
+
+    argv = worker_rpc.build_argv(
+        job,
+        {
+            "capability": "media.image.generate",
+            "prompt": "technical diagram",
+        },
+    )
+
+    assert argv[0:2] == ["codex", "exec"]
+    assert "--strict-config" in argv
+    assert argv[-1].startswith("$imagegen technical diagram")
+    assert str(job.outputs) in argv[-1]
 
 
 def _archive(members: list[tuple[tarfile.TarInfo, bytes]]) -> bytes:

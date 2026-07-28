@@ -16,6 +16,10 @@ if [ ! -f /ssh-host-keys/ssh_host_ed25519_key ]; then
 fi
 chmod 0600 /ssh-host-keys/ssh_host_ed25519_key
 chmod 0644 /ssh-host-keys/ssh_host_ed25519_key.pub
+ln -sf /ssh-host-keys/ssh_host_ed25519_key \
+  /etc/ssh/ssh_host_ed25519_key
+ln -sf /ssh-host-keys/ssh_host_ed25519_key.pub \
+  /etc/ssh/ssh_host_ed25519_key.pub
 
 install -d -o "$WORKER_USER" -g "$WORKER_USER" -m 0700 \
   "$worker_home/.ssh"
