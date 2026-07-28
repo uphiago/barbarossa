@@ -61,6 +61,9 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+bundle = [
+    { name = "pex" },
+]
 dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -74,6 +77,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+bundle = [{ name = "pex", specifier = "==2.98.4" }]
 dev = [
     { name = "pytest", specifier = "==9.1.1" },
     { name = "pytest-asyncio", specifier = "==1.4.0" },
@@ -375,6 +379,16 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d7/f1/e7a6dd94a8d4a5626c03e4e99c87f241ba9e350cd9e6d75123f992427270/packaging-26.2.tar.gz", hash = "sha256:ff452ff5a3e828ce110190feff1178bb1f2ea2281fa2075aadb987c2fb221661", size = 228134, upload-time = "2026-04-24T20:15:23.917Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/df/b2/87e62e8c3e2f4b32e5fe99e0b86d576da1312593b39f47d8ceef365e95ed/packaging-26.2-py3-none-any.whl", hash = "sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e", size = 100195, upload-time = "2026-04-24T20:15:22.081Z" },
+]
+
+[[package]]
+name = "pex"
+version = "2.98.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/2a/8a2d0c5390b471f494e0c74298ddde8c6f132c7a99ab4e04814fb10b2bb3/pex-2.98.4.tar.gz", hash = "sha256:6bb50caa75eab3314e71aaca2d887c4c2f398e85ed6b4d42e8195ed3249ccc94", size = 5323970, upload-time = "2026-07-27T23:57:54.893Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/06/a3a7527db89129cbf72d97f55dc5c521006ffbd6500eb28a83b0ac39572f/pex-2.98.4-py2.py35.py36.py37.py38.py39.py310.py311-none-any.whl", hash = "sha256:2f2167793580fd8826c4b1cf16aea43cdef99989ba1ecab712130be057471ee2", size = 3990490, upload-time = "2026-07-27T23:57:51.286Z" },
+    { url = "https://files.pythonhosted.org/packages/b4/1b/63d9add16549c8f27ffe4f205847c2b2b93109397aa504304b9e2a19050b/pex-2.98.4-py3.py312-none-any.whl", hash = "sha256:3f82725c2e287a2a321bdcb4328c25386dbae70556fc3a9dc73279360a6c926a", size = 1807351, upload-time = "2026-07-27T23:57:53.353Z" },
 ]
 
 [[package]]
