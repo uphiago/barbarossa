@@ -35,10 +35,14 @@ submit_and_assert_log() {
   local capability="$1"
   local expected_log="$2"
   shift 2
-  local submitted id
+  local submitted id logs
   submitted="$(router submit --capability "$capability" "$@" --wait)"
   id="$(printf '%s' "$submitted" | job_id)"
-  router logs "$id" | grep -Fq "$expected_log"
+  logs="$(router logs "$id")"
+  python3 -c \
+    'import json,sys; assert sys.argv[1] in json.load(sys.stdin)["stdout"]' \
+    "$expected_log" <<<"$logs"
+  printf 'verified %s\n' "$capability"
 }
 
 submit_and_assert_artifact() {
