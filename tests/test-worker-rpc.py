@@ -229,6 +229,29 @@ def test_download_redacts_logs_and_excludes_inputs(
         assert "inputs/private.txt" not in archive.getnames()
 
 
+def test_logs_redact_scoped_secret_files(
+    worker_rpc: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    secret = tmp_path / "codex"
+    secret.write_text("scoped-secret-value\n", encoding="utf-8")
+    monkeypatch.setenv("CODEX_ACCESS_TOKEN_FILE", str(secret))
+    job = worker_rpc.workspace(worker_rpc.WORKSPACE_ROOT, SAFE_JOB_ID)
+    job.root.mkdir(parents=True)
+    job.stdout.write_text(
+        "output scoped-secret-value",
+        encoding="utf-8",
+    )
+    job.stderr.touch()
+    job.status.write_text('{"status":"succeeded"}', encoding="utf-8")
+
+    logs = worker_rpc.read_logs(SAFE_JOB_ID)
+
+    assert "scoped-secret-value" not in logs["stdout"]
+    assert "[REDACTED]" in logs["stdout"]
+
+
 def test_start_and_run_runtime_job(
     worker_rpc: ModuleType,
     monkeypatch: pytest.MonkeyPatch,

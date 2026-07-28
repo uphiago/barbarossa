@@ -1,78 +1,88 @@
 # Barbarossa
 
-Autonomous offensive security agent — three specialized workers, one cluster. Runs on a 4GB VPS.
+Barbarossa is a portable three-container agent runtime:
 
+```text
+Telegram / API
+       |
+     Hermes
+     /    \
+  Forge   Recon
 ```
-Telegram → hermes → ├─ charlie (collect — recon, scanning, discovery)
-                     ├─ oscar   (operate — exploit dev, RE, compilation)
-                     └─ papa    (persist — anonymous ops via Tor)
-```
 
-## Quick start
+- **Hermes** plans and routes with DeepSeek V4 Flash. It can run up to three
+  child tasks in parallel.
+- **Forge** provides one general runtime lane and one Codex lane. The lanes can
+  run concurrently.
+- **Recon** provides one isolated lane for authorized network work, using
+  direct egress by default and Tor only when explicitly requested.
 
-Local development:
+The typed MCP v2 router runs as a hidden subprocess inside the official Hermes
+image. It is packaged as an OCI artifact, but it is not a fourth service.
+Forge and Recon have no shared network, published port, Docker socket, or root
+login.
+
+## Capabilities
+
+| Capability | Execution |
+| --- | --- |
+| Shell, files, builds, conversions | Forge runtime lane |
+| Repository engineering | Codex GPT-5.6, medium reasoning |
+| Image inspection, generation, editing | Codex lane |
+| HTTP and authorized network tools | Recon, direct |
+| Explicit anonymous network work | Recon, Tor |
+
+Codex is the engineering capability inside Forge and may create one internal
+subagent. Hermes can independently parallelize orchestration across Forge and
+Recon.
+
+## Local Setup
+
+Requirements:
+
+- Docker with Compose
+- `uv`
+- Python 3
+- DeepSeek API key
+- Telegram bot token
+- Dashboard credentials
+- Codex access token file
 
 ```bash
 cp .env.example .env
-# Fill API, Telegram, model, and dashboard values.
+# Fill the provider, Telegram, dashboard, and external file values.
 ./setup.sh
 ```
 
-`setup.sh` is local-only. It generates a development SSH key outside Git,
-publishes its public key under the ignored `worker/` runtime directory, builds
-the images, and configures Hermes.
+The setup builds the PEX and both worker images, generates a fresh restricted
+worker key, derives worker host trust from the mounted host-key volumes, starts
+the three services, and runs capability smoke tests. It never disables SSH
+host checking or copies a private worker key into a worker.
 
-Production is deployed by `.github/workflows/build-deploy.yml`. On the first
-deployment, the workflow reuses the active Hermes key when available or
-generates one under `~/.config/barbarossa` on the OVH host. The optional
-`BARBAROSSA_WORKER_SSH_KEY_B64` GitHub secret can supply a replacement key for
-a later, manually dispatched rotation. Key material remains outside the clone.
+## State Model
 
-## Workers
+Named volumes retain Hermes jobs, Forge workspaces, Codex home, Recon
+workspaces, Tor state, and worker host keys. There is no automatic cleanup or
+24-hour retention policy. This state is operational convenience, not a backup.
 
-| Worker | Phase | Key tools |
-|--------|-------|-----------|
-| **charlie** | Collect | nmap, masscan, subfinder, httpx, nuclei, ffuf, naabu, katana, dnsx, amass, python3, curl |
-| **oscar** | Operate | Everything in charlie + gdb, gcc, strace, ltrace, xxd, file, jq, socat |
-| **papa** | Persist | Tor proxy (SOCKS5 :9050), nmap, Python, curl |
+The deployment is deliberately disposable. Valuable skills, code, and
+sanitized artifacts should be promoted manually to a separate private Git
+repository. Redeployment generates a new worker-control key and does not
+migrate legacy worker state.
 
-## Architecture
+## Production
 
-Hermes supports multiple LLM providers (DeepSeek, OpenRouter, Anthropic, OpenAI, Ollama). Workers are Docker containers accessed via SSH — single key, no middleware.
+The GitHub Actions workflow tests the router and containers, scans Git history
+for secrets, publishes immutable SHA-tagged images, verifies the OVH SSH host
+key, and performs a direct cutover followed by remote smoke tests. Deployment
+secrets and environment-specific evidence remain outside this public
+repository.
 
-## Production hardening
+Host hardening remains under [`ops/host`](ops/host), including fail2ban, SSH
+forwarding restrictions, and cloud metadata filtering.
 
-Reusable host controls live under `ops/host/`. The public repository
-intentionally omits live addresses, account state, backup locations, completed
-deployment evidence, and other environment-specific operational records.
+## Reference
 
-Every service has bounded resources and logs, healthchecks, and basic container
-containment. Production secrets and rollback material stay outside Git.
-
-Papa provides Tor but does not enforce Tor-only egress. Commands requiring
-anonymity must still explicitly use `--socks5-hostname` or `torsocks`.
-
-## Requirements
-
-- Docker + compose
-- LLM API key
-- Telegram bot token
-- Dashboard username, password, and signing secret
-- 4GB RAM
-
-## Tor
-
-From Papa, make curl resolve the target through Tor:
-
-```bash
-curl --socks5-hostname 127.0.0.1:9050 \
-  https://check.torproject.org/api/ip
-```
-
-A healthy response contains `"IsTor":true`.
-
-## Docs
-
-- [WORKERS.md](WORKERS.md) — agent routing guide (COP model)
-- [AGENTS.md](AGENTS.md) — agent context (loaded by Hermes at boot)
-- [ops/host](ops/host) — reproducible OVH host hardening files
+- [`AGENTS.md`](AGENTS.md): Hermes operating context
+- [`WORKERS.md`](WORKERS.md): capability and lane contract
+- [`docs/superpowers/specs`](docs/superpowers/specs): architecture rationale

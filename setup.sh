@@ -1,137 +1,98 @@
 #!/bin/bash
 set -euo pipefail
 
-echo "╔══════════════════════════════════════╗"
-echo "║        barbarossa setup              ║"
-echo "╚══════════════════════════════════════╝"
+root="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+cd "$root"
 
-cd "$(dirname "$0")"
-
-# ─── 1. Validate .env ───
-[ ! -f .env ] && { echo "Missing .env. Copy .env.example and fill in your keys."; exit 1; }
-set -a; source .env; set +a
-
-missing=""
-[[ -z "${HERMES_PROVIDER:-}" ]] && missing="$missing HERMES_PROVIDER"
-[[ -z "${HERMES_MODEL:-}" ]] && missing="$missing HERMES_MODEL"
-[[ -z "${TELEGRAM_BOT_TOKEN:-}" ]] && missing="$missing TELEGRAM_BOT_TOKEN"
-[[ -z "${DEEPSEEK_API_KEY:-}" ]] && [[ -z "${OPENROUTER_API_KEY:-}" ]] && missing="$missing API_KEY"
-[[ -z "${DASHBOARD_USER:-}" ]] && missing="$missing DASHBOARD_USER"
-[[ -z "${DASHBOARD_PASS:-}" ]] && missing="$missing DASHBOARD_PASS"
-[[ -z "${DASHBOARD_SECRET:-}" ]] && missing="$missing DASHBOARD_SECRET"
-
-if [[ -n "$missing" ]]; then
-  echo "Missing env vars:$missing"
-  echo "Check .env.example for required fields."
-  exit 1
-fi
-
-# ─── 2. Local SSH key ───
-KEY_PATH="${BARBAROSSA_SSH_KEY:-$HOME/.ssh/barbarossa_key}"
-
-if [ ! -f "$KEY_PATH" ]; then
-    echo "[+] Generating SSH key..."
-    mkdir -p "$(dirname "$KEY_PATH")"
-    ssh-keygen -t ed25519 -f "$KEY_PATH" -N "" -C "barbarossa" >/dev/null 2>&1
-fi
-
-# ─── 3. SSH authorized_keys ───
-AUTHORIZED_KEYS_FILE="${BARBAROSSA_AUTHORIZED_KEYS_FILE:-$PWD/worker/ssh-keys/authorized_keys}"
-mkdir -p "$(dirname "$AUTHORIZED_KEYS_FILE")"
-cp "$KEY_PATH.pub" "$AUTHORIZED_KEYS_FILE"
-export BARBAROSSA_AUTHORIZED_KEYS_FILE="$AUTHORIZED_KEYS_FILE"
-
-# ─── 4. Build & start ───
-RUNNING=$(docker ps --filter name=hermes -q 2>/dev/null | wc -l)
-if [ "$RUNNING" -gt 0 ]; then
-    echo "[!] Cluster already running. Use 'docker compose restart' or 'docker compose down && ./setup.sh'"
+for command in docker ssh-keygen uv python3; do
+  command -v "$command" >/dev/null || {
+    printf 'missing required command: %s\n' "$command" >&2
     exit 1
-fi
+  }
+done
+docker compose version >/dev/null
 
-echo "[+] Building & starting cluster..."
-docker compose up -d --build
-sleep 5
+test -f .env || {
+  printf 'missing .env; start from .env.example\n' >&2
+  exit 1
+}
+set -a
+# shellcheck disable=SC1091
+. "$root/.env"
+set +a
 
-# ─── 5. Inject SSH key into hermes ───
-docker exec hermes mkdir -p /opt/data/ssh
-if ! docker exec hermes test -f /opt/data/ssh/key 2>/dev/null; then
-    docker cp "$KEY_PATH" hermes:/opt/data/ssh/key
-    docker exec hermes chmod 600 /opt/data/ssh/key
-    docker exec hermes chown hermes:hermes /opt/data/ssh/key
-    echo "    + SSH key injected"
-fi
-
-# ─── 6. Copy key to charlie (inter-worker SSH) ───
-if ! docker exec charlie test -f /root/.ssh/id_ed25519 2>/dev/null; then
-    docker cp "$KEY_PATH" charlie:/root/.ssh/id_ed25519
-    docker exec charlie chmod 600 /root/.ssh/id_ed25519
-    echo "    + SSH key copied to charlie"
-fi
-
-# ─── 7. Hermes config ───
-echo "[+] Configuring Hermes..."
-
-docker exec hermes hermes config set terminal.backend ssh
-docker exec hermes hermes config set model.provider "$HERMES_PROVIDER"
-docker exec hermes hermes config set model.name "$HERMES_MODEL"
-docker exec hermes hermes config set model.default "$HERMES_MODEL"
-docker exec hermes hermes config set delegation.provider "$HERMES_PROVIDER"
-docker exec hermes hermes config set delegation.model "$HERMES_MODEL"
-
-# Auxiliary models
-for aux in title_generation; do
-    docker exec hermes hermes config set "auxiliary.${aux}.provider" "$HERMES_PROVIDER" 2>/dev/null || true
-    docker exec hermes hermes config set "auxiliary.${aux}.model" "$HERMES_MODEL" 2>/dev/null || true
+for variable in \
+  DEEPSEEK_API_KEY TELEGRAM_BOT_TOKEN \
+  DASHBOARD_USER DASHBOARD_PASS DASHBOARD_SECRET; do
+  test -n "${!variable:-}" || {
+    printf 'missing required variable: %s\n' "$variable" >&2
+    exit 1
+  }
 done
 
-# Limits
-docker exec hermes hermes config set tool_output.max_bytes 200000
-docker exec hermes hermes config set tool_output.max_lines 5000
-docker exec hermes hermes config set agent.max_turns 120
-docker exec hermes hermes config set agent.disabled_toolsets vision
+runtime="${BARBAROSSA_RUNTIME_DIR:-$root/.runtime}"
+install -d -m 0700 "$runtime"
+umask 077
 
-# ─── 8. Inject AGENTS.md + SOUL.md ───
-if [ -f AGENTS.md ]; then
-    docker cp AGENTS.md hermes:/opt/data/AGENTS.md
-    docker exec hermes chown hermes:hermes /opt/data/AGENTS.md
-    echo "    + AGENTS.md"
+export BARBAROSSA_WORKER_SSH_KEY_FILE="$runtime/worker_key"
+export BARBAROSSA_AUTHORIZED_KEYS_FILE="$runtime/authorized_keys"
+export BARBAROSSA_KNOWN_HOSTS_FILE="$runtime/known_hosts"
+export BARBAROSSA_CODEX_TOKEN_FILE="${BARBAROSSA_CODEX_TOKEN_FILE:-$runtime/codex_access_token}"
+export BARBAROSSA_ROUTER_BUNDLE="$runtime/barbarossa-router.pex"
+export BARBAROSSA_IMAGE_TAG="${BARBAROSSA_IMAGE_TAG:-local}"
+
+if [ -n "${CODEX_ACCESS_TOKEN:-}" ]; then
+  printf '%s' "$CODEX_ACCESS_TOKEN" > "$BARBAROSSA_CODEX_TOKEN_FILE"
 fi
-if [ -f SOUL.md ]; then
-    docker cp SOUL.md hermes:/opt/data/SOUL.md
-    docker exec hermes chown hermes:hermes /opt/data/SOUL.md
-    echo "    + SOUL.md"
-fi
+test -s "$BARBAROSSA_CODEX_TOKEN_FILE" || {
+  printf 'missing Codex token file: %s\n' "$BARBAROSSA_CODEX_TOKEN_FILE" >&2
+  exit 1
+}
+chmod 0600 "$BARBAROSSA_CODEX_TOKEN_FILE"
 
-# ─── 9. Health check ───
-echo "[+] Testing SSH hermes→charlie..."
-attempt=0
-while [ $attempt -lt 10 ]; do
-    if docker exec hermes su -s /bin/sh hermes -c \
-        "ssh -i /opt/data/ssh/key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=3 root@charlie 'echo OK'" 2>&1 | grep -q "^OK"; then
-        echo "    ✅ SSH pipe healthy"
-        break
-    fi
-    attempt=$((attempt + 1))
-    sleep 2
-done
+rm -f "$BARBAROSSA_WORKER_SSH_KEY_FILE" \
+  "$BARBAROSSA_WORKER_SSH_KEY_FILE.pub" \
+  "$BARBAROSSA_AUTHORIZED_KEYS_FILE" \
+  "$BARBAROSSA_KNOWN_HOSTS_FILE"
+ssh-keygen -q -t ed25519 -N "" -C "hermes@barbarossa-local" \
+  -f "$BARBAROSSA_WORKER_SSH_KEY_FILE"
+printf 'restrict,command="/usr/local/bin/worker-ssh-dispatch" %s\n' \
+  "$(cat "$BARBAROSSA_WORKER_SSH_KEY_FILE.pub")" \
+  > "$BARBAROSSA_AUTHORIZED_KEYS_FILE"
+touch "$BARBAROSSA_KNOWN_HOSTS_FILE"
+chmod 0600 "$BARBAROSSA_WORKER_SSH_KEY_FILE" \
+  "$BARBAROSSA_AUTHORIZED_KEYS_FILE" \
+  "$BARBAROSSA_KNOWN_HOSTS_FILE"
 
-# ─── 10. Provider test ───
-echo "[+] Testing model..."
-if timeout 30 docker exec hermes hermes chat -q "reply with only: OK" > /tmp/barbarossa-test.txt 2>/dev/null; then
-    if grep -q OK /tmp/barbarossa-test.txt 2>/dev/null; then
-        echo "    ✅ Provider $HERMES_PROVIDER working"
-    else
-        echo "    ⚠️  Provider returned unexpected response:"
-        head -3 /tmp/barbarossa-test.txt | sed 's/^/    /'
-    fi
-else
-    echo "    ⚠️  Provider test timed out. Check API key."
-    echo "    Run: docker logs hermes --tail 30"
-fi
-rm -f /tmp/barbarossa-test.txt
+(
+  cd router
+  mkdir -p dist
+  uv export --frozen --no-dev --no-emit-project \
+    --format requirements-txt \
+    --output-file dist/runtime-requirements.txt
+  uv run --frozen --group bundle pex \
+    -r dist/runtime-requirements.txt \
+    -D src \
+    -o "$BARBAROSSA_ROUTER_BUNDLE" \
+    --python-shebang=/opt/hermes/.venv/bin/python \
+    -e barbarossa_router.cli:main
+)
 
-echo ""
-echo "╔══════════════════════════════════════╗"
-echo "║   barbarossa ready                   ║"
-echo "╚══════════════════════════════════════╝"
-docker exec hermes hermes gateway status 2>/dev/null || true
+docker compose down --remove-orphans
+docker compose build forge recon
+docker compose up -d --remove-orphans --force-recreate \
+  --wait --wait-timeout 300 forge recon
+
+{
+  printf 'forge %s\n' \
+    "$(docker compose exec -T forge \
+      cat /ssh-host-keys/ssh_host_ed25519_key.pub)"
+  printf 'recon %s\n' \
+    "$(docker compose exec -T recon \
+      cat /ssh-host-keys/ssh_host_ed25519_key.pub)"
+} > "$BARBAROSSA_KNOWN_HOSTS_FILE"
+chmod 0600 "$BARBAROSSA_KNOWN_HOSTS_FILE"
+
+docker compose up -d --remove-orphans --force-recreate \
+  --wait --wait-timeout 300 hermes
+BARBAROSSA_RUNTIME_DIR="$runtime" scripts/smoke-remote.sh
