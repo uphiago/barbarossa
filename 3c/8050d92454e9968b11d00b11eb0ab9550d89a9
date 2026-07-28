@@ -1,0 +1,21 @@
+router/tests/test_server.py
+  s_070c9332e1ca94::t_b0b6009dd8203a 1-162
+router/tests/test_service.py
+  s_070c9332e1ca94::t_94de1b9e7458c4 1-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "3c8050d92454e9968b11d00b11eb0ab9550d89a9",
+  "prompts": {},
+  "sessions": {
+    "s_070c9332e1ca94": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be19f4b0-e38b-441b-9f19-4f38dbf85820",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
