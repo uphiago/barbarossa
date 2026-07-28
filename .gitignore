@@ -21,3 +21,6 @@ credentials*
 # Editor
 *.swp
 *~
+
+# Local worktrees
+.worktrees/
