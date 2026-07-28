@@ -21,6 +21,9 @@ dev = [
   "pytest==9.1.1",
   "pytest-asyncio==1.4.0",
 ]
+bundle = [
+  "pex==2.98.4",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/barbarossa_router"]
