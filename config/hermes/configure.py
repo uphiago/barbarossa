@@ -24,12 +24,13 @@ def desired_config() -> dict[str, Any]:
     return {
         "model": {
             "provider": "deepseek",
-            "name": "deepseek/deepseek-v4-flash",
-            "default": "deepseek/deepseek-v4-flash",
+            "name": "deepseek-v4-flash",
+            "default": "deepseek-v4-flash",
+            "base_url": "https://api.deepseek.com/v1",
         },
         "delegation": {
             "provider": "deepseek",
-            "model": "deepseek/deepseek-v4-flash",
+            "model": "deepseek-v4-flash",
             "max_concurrent_children": 3,
             "max_spawn_depth": 1,
             "orchestrator_enabled": True,
@@ -71,6 +72,11 @@ def configure(path: Path = CONFIG_PATH) -> None:
             raise ValueError("Hermes config must contain a YAML mapping")
     else:
         config = {}
+
+    model = config.get("model")
+    if isinstance(model, dict):
+        model.pop("api_key", None)
+        model.pop("api_mode", None)
 
     merge(config, desired_config())
     serialized = yaml.safe_dump(
