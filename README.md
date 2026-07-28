@@ -1,5 +1,7 @@
 # Barbarossa
 
+![Barbarossa, the agent runtime](docs/assets/barbarossa-epic-16x9.png)
+
 Barbarossa is a portable three-container agent runtime:
 
 ```text
