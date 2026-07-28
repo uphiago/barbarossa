@@ -59,7 +59,8 @@ compose down --remove-orphans
 "$docker" pull "ghcr.io/uphiago/barbarossa-router-bundle:$tag"
 bundle_container="barbarossa-router-bundle-$$"
 "$docker" create --name "$bundle_container" \
-  "ghcr.io/uphiago/barbarossa-router-bundle:$tag" >/dev/null
+  "ghcr.io/uphiago/barbarossa-router-bundle:$tag" \
+  /barbarossa-router.pex >/dev/null
 trap '"$docker" rm -f "$bundle_container" >/dev/null 2>&1 || true' EXIT HUP INT TERM
 "$docker" cp "$bundle_container:/barbarossa-router.pex" "$router_bundle"
 "$docker" rm "$bundle_container" >/dev/null
