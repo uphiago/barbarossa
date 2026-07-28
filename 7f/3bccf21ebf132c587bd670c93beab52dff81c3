@@ -1,0 +1,21 @@
+config/hermes/configure.py
+  s_ab7b9f3ec54234::t_0959ccb0eb2e9d 1-105
+tests/infra-regression.sh
+  s_ab7b9f3ec54234::t_4ab3fde1d1d116 1-32,34-54,56-80,83-88,90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "7f3bccf21ebf132c587bd670c93beab52dff81c3",
+  "prompts": {},
+  "sessions": {
+    "s_ab7b9f3ec54234": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fa4df-8a8e-7be3-94df-62ef4b4c9ba5",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
