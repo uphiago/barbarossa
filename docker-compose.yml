@@ -35,6 +35,8 @@ services:
         target: worker_authorized_keys
       - source: codex_access_token
         target: codex_access_token
+      - source: codex_auth_json
+        target: codex_auth_json
     volumes:
       - forge-workspace:/workspace
       - forge-codex-home:/home/forge/.codex
@@ -119,9 +121,9 @@ services:
       - -lc
       - >-
         /opt/hermes/.venv/bin/python /opt/barbarossa/configure.py &&
-        exec hermes gateway run
+        exec /opt/hermes/.venv/bin/hermes gateway run
     ports:
-      - "127.0.0.1:9119:9119"
+      - "${HERMES_DASHBOARD_BIND:-127.0.0.1}:${HERMES_DASHBOARD_PORT:-9119}:9119"
     environment:
       TZ: America/Sao_Paulo
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?set DEEPSEEK_API_KEY}
@@ -131,6 +133,14 @@ services:
       HERMES_DASHBOARD_BASIC_AUTH_USERNAME: ${DASHBOARD_USER:?set DASHBOARD_USER}
       HERMES_DASHBOARD_BASIC_AUTH_PASSWORD: ${DASHBOARD_PASS:?set DASHBOARD_PASS}
       HERMES_DASHBOARD_BASIC_AUTH_SECRET: ${DASHBOARD_SECRET:?set DASHBOARD_SECRET}
+      BARBAROSSA_SSH_KEY: /run/secrets/worker_key
+      BARBAROSSA_KNOWN_HOSTS: /run/secrets/known_hosts
+      BARBAROSSA_STATE_DB: /opt/data/router/jobs.sqlite3
+      BARBAROSSA_INPUT_ROOT: /opt/data/barbarossa-transfer
+      BARBAROSSA_RESULT_ROOT: /opt/data/barbarossa-results
+      BARBAROSSA_FORGE_HOST: forge
+      BARBAROSSA_RECON_HOST: recon
+      OTEL_SDK_DISABLED: "true"
     secrets:
       - source: worker_private_key
         target: worker_key
@@ -140,10 +150,10 @@ services:
       - hermes-state:/opt/data
       - ${BARBAROSSA_ROUTER_BUNDLE:?set BARBAROSSA_ROUTER_BUNDLE}:/opt/barbarossa-router/barbarossa-router.pex:ro
       - ./config/hermes/configure.py:/opt/barbarossa/configure.py:ro
-      - ./AGENTS.md:/opt/data/AGENTS.md:ro
-      - ./skills/hermes/barbarossa-routing:/opt/data/skills/barbarossa-routing:ro
-      - ./skills/hermes/barbarossa-codex:/opt/data/skills/barbarossa-codex:ro
-      - ./skills/hermes/barbarossa-network:/opt/data/skills/barbarossa-network:ro
+      - ./AGENTS.md:/opt/barbarossa/context/AGENTS.md:ro
+      - ./skills/hermes/barbarossa-routing:/opt/barbarossa/context/skills/barbarossa-routing:ro
+      - ./skills/hermes/barbarossa-codex:/opt/barbarossa/context/skills/barbarossa-codex:ro
+      - ./skills/hermes/barbarossa-network:/opt/barbarossa/context/skills/barbarossa-network:ro
     networks:
       - hermes-forge
       - hermes-recon
@@ -183,3 +193,5 @@ secrets:
     file: ${BARBAROSSA_KNOWN_HOSTS_FILE:?set BARBAROSSA_KNOWN_HOSTS_FILE}
   codex_access_token:
     file: ${BARBAROSSA_CODEX_TOKEN_FILE:?set BARBAROSSA_CODEX_TOKEN_FILE}
+  codex_auth_json:
+    file: ${BARBAROSSA_CODEX_AUTH_FILE:?set BARBAROSSA_CODEX_AUTH_FILE}

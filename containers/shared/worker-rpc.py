@@ -24,6 +24,7 @@ SAFE_PATH = (
 )
 MAX_RPC_BYTES = 1024 * 1024
 MAX_INPUT_BYTES = 32 * 1024 * 1024
+MAX_UPLOAD_ARCHIVE_BYTES = MAX_INPUT_BYTES + 1024 * 1024
 MAX_OUTPUT_BYTES = 64 * 1024 * 1024
 MAX_LOG_BYTES = 200_000
 JOB_ID_RE = re.compile(
@@ -161,7 +162,9 @@ def job_environment(capability: str) -> dict[str, str]:
                 value = secret_path.read_text(encoding="utf-8").removesuffix(
                     "\n"
                 )
-                if not value or "\n" in value or "\r" in value:
+                if not value:
+                    continue
+                if "\n" in value or "\r" in value:
                     raise ValueError(f"{variable} secret is malformed")
                 environment[variable] = value
     return environment
@@ -253,8 +256,15 @@ def build_argv(job: JobPaths, request: dict[str, Any]) -> list[str]:
         return ["/bin/bash", "-lc", require_text(request, "command")]
     if capability == "network.tor":
         return [
-            "torsocks",
-            "--isolate",
+            "/usr/bin/env",
+            "ALL_PROXY=socks5h://127.0.0.1:9050",
+            "HTTP_PROXY=socks5h://127.0.0.1:9050",
+            "HTTPS_PROXY=socks5h://127.0.0.1:9050",
+            "all_proxy=socks5h://127.0.0.1:9050",
+            "http_proxy=socks5h://127.0.0.1:9050",
+            "https_proxy=socks5h://127.0.0.1:9050",
+            "NO_PROXY=",
+            "no_proxy=",
             "/bin/bash",
             "-lc",
             require_text(request, "command"),
@@ -273,6 +283,11 @@ def build_argv(job: JobPaths, request: dict[str, Any]) -> list[str]:
             "--location",
             "--max-time",
             str(timeout),
+            "--retry",
+            "3",
+            "--retry-all-errors",
+            "--retry-delay",
+            "2",
             "--proto",
             "=http,https",
             "--output",
@@ -515,6 +530,20 @@ def redact(data: bytes) -> bytes:
             value = secret_path.read_text(encoding="utf-8").removesuffix("\n")
             if len(value) >= 4 and "\n" not in value and "\r" not in value:
                 values.append(value)
+    auth_path = Path(
+        os.environ.get(
+            "CODEX_AUTH_JSON_FILE",
+            "/run/secrets/codex_auth_json",
+        )
+    )
+    if auth_path.is_file():
+        try:
+            auth = json.loads(auth_path.read_text(encoding="utf-8"))
+            for value in auth.get("tokens", {}).values():
+                if isinstance(value, str) and len(value) >= 4:
+                    values.append(value)
+        except (json.JSONDecodeError, AttributeError):
+            pass
     for value in values:
         text = text.replace(value, "[REDACTED]")
     text = re.sub(
@@ -560,7 +589,23 @@ def extract_upload(job_id: str, source: BinaryIO) -> list[str]:
     )
     names: list[str] = []
     total = 0
+    buffered: BinaryIO | None = None
     try:
+        if not source.seekable():
+            buffered = tempfile.SpooledTemporaryFile(
+                max_size=MAX_UPLOAD_ARCHIVE_BYTES
+            )
+            copied = 0
+            while True:
+                chunk = source.read(1024 * 1024)
+                if not chunk:
+                    break
+                copied += len(chunk)
+                if copied > MAX_UPLOAD_ARCHIVE_BYTES:
+                    raise ValueError("upload archive exceeds the input limit")
+                buffered.write(chunk)
+            buffered.seek(0)
+            source = buffered
         with tarfile.open(fileobj=source, mode="r:*") as archive:
             members = archive.getmembers()
             if len(members) > 8:
@@ -602,6 +647,8 @@ def extract_upload(job_id: str, source: BinaryIO) -> list[str]:
             os.replace(temporary / name, job.inputs / name)
         return names
     finally:
+        if buffered is not None:
+            buffered.close()
         shutil.rmtree(temporary, ignore_errors=True)
 
 

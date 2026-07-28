@@ -1,0 +1,14 @@
+title = "Barbarossa Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Dashboard healthcheck uses runtime variables, not literals."
+targetRules = ["curl-auth-user"]
+condition = "AND"
+regexTarget = "line"
+regexes = [
+  '''\$\$HERMES_DASHBOARD_BASIC_AUTH_USERNAME:\$\$HERMES_DASHBOARD_BASIC_AUTH_PASSWORD''',
+]
+paths = ['''(^|/)docker-compose\.yml$''']

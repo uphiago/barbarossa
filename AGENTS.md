@@ -9,7 +9,7 @@ cluster.
 | --- | --- | --- |
 | Hermes | Planning, routing, context, up to three parallel children | DeepSeek V4 Flash |
 | Forge runtime lane | Shell, files, compilation | Non-root isolated job |
-| Forge Codex lane | Code, image understanding and generation | Codex GPT-5.6 medium, at most one subagent |
+| Forge Codex lane | Code, image understanding and generation | Codex GPT-5.6 Luna medium, at most one subagent |
 | Recon lane | Authorized network work, direct or explicit Tor | nmap, ProjectDiscovery tools, Tor |
 
 Forge and Recon do not share a Docker network. Hermes reaches each worker

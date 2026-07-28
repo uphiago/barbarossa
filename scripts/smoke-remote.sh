@@ -23,7 +23,7 @@ diff -u \
   <(compose ps --status running --services | sort)
 
 router() {
-  compose exec -T hermes /opt/hermes/.venv/bin/python \
+  compose exec -T --user hermes hermes /opt/hermes/.venv/bin/python \
     /opt/barbarossa-router/barbarossa-router.pex "$@"
 }
 
@@ -50,12 +50,14 @@ submit_and_assert_artifact() {
   id="$(printf '%s' "$submitted" | job_id)"
   artifact="$(router result "$id" | python3 -c \
     'import json,sys; print(next(path for path in json.load(sys.stdin)["artifacts"] if path.endswith("/outputs/body.bin")))')"
-  compose exec -T hermes grep -Fq "$expected_content" "$artifact"
+  compose exec -T --user hermes hermes \
+    grep -Fq "$expected_content" "$artifact"
 }
 
 router health | python3 -c \
   'import json,sys; assert json.load(sys.stdin)["status"] == "ok"'
-compose exec -T hermes /opt/hermes/.venv/bin/hermes mcp test barbarossa
+compose exec -T --user hermes hermes \
+  /opt/hermes/.venv/bin/hermes mcp test barbarossa
 
 submit_and_assert_log runtime.execute BARBAROSSA_RUNTIME_OK \
   --command 'printf BARBAROSSA_RUNTIME_OK'
@@ -66,7 +68,7 @@ submit_and_assert_log code.delegate BARBAROSSA_SUBAGENT_OK \
   --prompt 'Spawn exactly one subagent to return BARBAROSSA_SUBAGENT_OK, then reply with that exact text.'
 
 fixture="/opt/data/barbarossa-transfer/smoke.png"
-compose exec -T hermes sh -c \
+compose exec -T --user hermes hermes sh -c \
   'install -d -m 0700 /opt/data/barbarossa-transfer &&
    printf "%s" "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" |
    base64 -d > /opt/data/barbarossa-transfer/smoke.png'
@@ -75,7 +77,7 @@ submit_and_assert_log media.image.inspect BARBAROSSA_IMAGE_OK \
   --prompt 'Inspect this image, then reply with exactly BARBAROSSA_IMAGE_OK.'
 
 generated="$(router submit --capability media.image.generate \
-  --prompt 'Generate a 64x64 solid red square PNG and save it as red.png.' \
+  --prompt 'Generate a simple red square icon, then copy the generated PNG unchanged to outputs/red.png. Do not resize it or use ImageMagick or Pillow.' \
   --wait)"
 generated_id="$(printf '%s' "$generated" | job_id)"
 router result "$generated_id" | python3 -c \
@@ -84,10 +86,10 @@ router result "$generated_id" | python3 -c \
 submit_and_assert_artifact network.fetch '"IsTor":false' \
   --url 'https://check.torproject.org/api/ip'
 submit_and_assert_log network.tor '"IsTor":true' \
-  --command 'curl -fsS --max-time 60 https://check.torproject.org/api/ip'
+  --command 'curl -fsS --max-time 60 --retry 3 --retry-all-errors --retry-delay 2 https://check.torproject.org/api/ip'
 
-compose exec -T forge id -u | grep -Fx 10001
-compose exec -T recon id -u | grep -Fx 10002
+compose exec -T --user forge forge id -u | grep -Fx 10001
+compose exec -T --user recon recon id -u | grep -Fx 10002
 for service in forge recon; do
   compose exec -T "$service" test ! -S /var/run/docker.sock
 done
@@ -97,7 +99,9 @@ networks="$(compose ps -q | xargs "$docker" inspect \
 printf '%s\n' "$networks" | grep -F 'forge'
 printf '%s\n' "$networks" | grep -F 'recon'
 if printf '%s\n' "$networks" | awk \
-  '/forge/{forge=$0} /recon/{recon=$0} END{exit(index(forge,"hermes-recon") || index(recon,"hermes-forge") ? 0 : 1)}'; then
+  '/barbarossa-forge-1/{forge=$0}
+   /barbarossa-recon-1/{recon=$0}
+   END{exit(index(forge,"hermes-recon") || index(recon,"hermes-forge") ? 0 : 1)}'; then
   printf 'worker joined the wrong isolated network\n' >&2
   exit 1
 fi

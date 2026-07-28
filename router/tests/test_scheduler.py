@@ -88,6 +88,41 @@ async def test_terminal_poll_releases_lane_for_next_job(
     assert (await store.get(second.job_id)).status == "running"
 
 
+async def test_cross_process_polling_does_not_deadlock_lane(
+    store: JobStore,
+    runtime_request: JobRequest,
+) -> None:
+    transport = FakeTransport()
+    other_store = JobStore(store.path)
+    first_scheduler = Scheduler(store, transport)
+    second_scheduler = Scheduler(other_store, transport)
+    first = await first_scheduler.submit(runtime_request)
+    second = await first_scheduler.submit(runtime_request)
+
+    await first_scheduler.tick()
+    transport.statuses[first.job_id] = {
+        "status": "succeeded",
+        "exit_code": 0,
+        "artifacts": [],
+        "error": None,
+    }
+    await second_scheduler.poll_once()
+    await second_scheduler.tick()
+    transport.statuses[second.job_id] = {
+        "status": "succeeded",
+        "exit_code": 0,
+        "artifacts": [],
+        "error": None,
+    }
+    await first_scheduler.poll_once()
+    third = await first_scheduler.submit(runtime_request)
+
+    await first_scheduler.tick()
+    await second_scheduler.tick()
+
+    assert (await store.get(third.job_id)).status == "running"
+
+
 async def test_reconcile_keeps_confirmed_remote_process_running(
     store: JobStore,
     runtime_request: JobRequest,

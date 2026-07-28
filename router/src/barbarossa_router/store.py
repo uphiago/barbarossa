@@ -162,6 +162,53 @@ class JobStore:
             return None
         return JobStatus.model_validate_json(row["status_json"])
 
+    async def claim_next(self, lane: Lane) -> JobStatus | None:
+        async with self._lock:
+            return await asyncio.to_thread(self._claim_next_sync, lane)
+
+    def _claim_next_sync(self, lane: Lane) -> JobStatus | None:
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            active = connection.execute(
+                """
+                SELECT 1 FROM jobs
+                WHERE lane = ? AND status = 'running'
+                LIMIT 1
+                """,
+                (lane,),
+            ).fetchone()
+            if active is not None:
+                return None
+            row = connection.execute(
+                """
+                SELECT job_id, status_json FROM jobs
+                WHERE lane = ? AND status = 'queued'
+                ORDER BY queue_position
+                LIMIT 1
+                """,
+                (lane,),
+            ).fetchone()
+            if row is None:
+                return None
+            current = JobStatus.model_validate_json(row["status_json"])
+            updated = current.model_copy(
+                update={
+                    "status": "running",
+                    "started_at": datetime.now(timezone.utc),
+                }
+            )
+            cursor = connection.execute(
+                """
+                UPDATE jobs
+                SET status = 'running', status_json = ?, remote_pid = NULL
+                WHERE job_id = ? AND status = 'queued'
+                """,
+                (updated.model_dump_json(), current.job_id),
+            )
+            if cursor.rowcount != 1:
+                raise RuntimeError(f"could not claim queued job: {current.job_id}")
+            return updated
+
     async def mark_running(
         self,
         job_id: str,

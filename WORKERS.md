@@ -23,7 +23,8 @@ run concurrently, but each lane admits one job at a time.
 | `media.image.generate` | codex | Generate an image with `$imagegen` |
 | `media.image.edit` | codex | Edit one staged image |
 
-Codex uses GPT-5.6 with medium reasoning and can create one internal subagent.
+Codex uses GPT-5.6 Luna with medium reasoning and can create one internal
+subagent.
 The outer Forge container is its sandbox boundary.
 
 ## Recon

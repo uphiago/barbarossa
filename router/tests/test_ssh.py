@@ -100,7 +100,7 @@ async def test_payload_is_sent_on_stdin(
     call = connector.connections[0].calls[0]
     assert connect["host"] == "forge"
     assert connect["username"] == "forge"
-    assert connect["known_hosts"] == ssh_settings.known_hosts
+    assert connect["known_hosts"] == str(ssh_settings.known_hosts)
     assert call.command == "barbarossa-worker rpc"
     assert json.loads(call.input)["job_id"] == SAFE_JOB_ID
 
