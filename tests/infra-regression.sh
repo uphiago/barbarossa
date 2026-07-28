@@ -53,6 +53,29 @@ assert set(secrets) == {
     "worker_known_hosts",
     "codex_access_token",
 }
+
+workflow_path = Path(".github/workflows/build-deploy.yml")
+workflow = yaml.safe_load(workflow_path.read_text())
+jobs = workflow["jobs"]
+assert {"validate", "build-router", "build-workers", "deploy"} <= set(jobs)
+assert jobs["deploy"]["needs"] == [
+    "validate", "build-router", "build-workers"
+]
+workflow_text = workflow_path.read_text()
+assert "barbarossa-router-bundle:${{ github.sha }}" in workflow_text
+assert "barbarossa-forge" in workflow_text
+assert "barbarossa-recon" in workflow_text
+assert "OVH_HOST_KEY" in workflow_text
+assert "StrictHostKeyChecking=yes" in workflow_text
+assert "scripts/deploy-runtime-files.sh" in workflow_text
+assert "scripts/smoke-remote.sh" in workflow_text
+for line in workflow_text.splitlines():
+    if "uses:" in line:
+        reference = line.split("uses:", 1)[1].strip().split()[0]
+        assert "@" in reference
+        revision = reference.rsplit("@", 1)[1]
+        assert len(revision) == 40
+        int(revision, 16)
 PY
 
 grep -Fq 'supports_parallel_tool_calls": True' config/hermes/configure.py
@@ -86,5 +109,17 @@ grep -Fq '.runtime/' .gitignore
 grep -Fq '.env*' .dockerignore
 grep -Fq '!.env.example' .dockerignore
 grep -Fq 'router/.venv/' .dockerignore
+grep -Fq 'ssh-keygen -q -t ed25519' scripts/deploy-runtime-files.sh
+grep -Fq 'restrict,command="/usr/local/bin/worker-ssh-dispatch"' \
+  scripts/deploy-runtime-files.sh
+grep -Fq 'docker compose' .github/workflows/build-deploy.yml
+grep -Fq 'mcp test barbarossa' scripts/smoke-remote.sh
+
+for forbidden in StrictHostKeyChecking=no ssh-keyscan; do
+  if grep -R -Fq "$forbidden" .github scripts; then
+    printf 'unsafe deploy pattern: %s\n' "$forbidden" >&2
+    exit 1
+  fi
+done
 
 printf 'all infra regression assertions passed\n'
