@@ -264,16 +264,19 @@ def build_argv(job: JobPaths, request: dict[str, Any]) -> list[str]:
         parsed = urlparse(url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise ValueError("network.fetch requires an http(s) URL")
+        timeout = request.get("timeout_seconds", 120)
+        if not isinstance(timeout, int) or not 1 <= timeout <= 7200:
+            raise ValueError("network.fetch timeout is invalid")
         return [
             "curl",
             "--fail-with-body",
             "--location",
             "--max-time",
-            "120",
+            str(timeout),
             "--proto",
             "=http,https",
             "--output",
-            str(job.outputs / "response.bin"),
+            str(job.outputs / "body.bin"),
             "--dump-header",
             str(job.outputs / "headers.txt"),
             "--",

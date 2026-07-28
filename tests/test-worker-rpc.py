@@ -93,6 +93,54 @@ def test_fetch_argv_validates_http_url(worker_rpc: ModuleType, tmp_path: Path) -
         )
 
 
+def test_network_tor_is_explicit(
+    worker_rpc: ModuleType,
+    tmp_path: Path,
+) -> None:
+    job = worker_rpc.workspace(tmp_path, SAFE_JOB_ID)
+    job.inputs.mkdir(parents=True)
+    job.outputs.mkdir()
+    direct = worker_rpc.build_argv(
+        job,
+        {"capability": "network.inspect", "command": "nmap example.com"},
+    )
+    tor = worker_rpc.build_argv(
+        job,
+        {"capability": "network.tor", "command": "curl example.com"},
+    )
+
+    assert direct == ["/bin/bash", "-lc", "nmap example.com"]
+    assert tor == [
+        "torsocks",
+        "--isolate",
+        "/bin/bash",
+        "-lc",
+        "curl example.com",
+    ]
+
+
+def test_network_fetch_uses_fixed_argv_and_job_timeout(
+    worker_rpc: ModuleType,
+    tmp_path: Path,
+) -> None:
+    job = worker_rpc.workspace(tmp_path, SAFE_JOB_ID)
+    job.inputs.mkdir(parents=True)
+    job.outputs.mkdir()
+    argv = worker_rpc.build_argv(
+        job,
+        {
+            "capability": "network.fetch",
+            "url": "https://example.com/a;b",
+            "timeout_seconds": 37,
+        },
+    )
+
+    assert argv[0] == "curl"
+    assert argv[argv.index("--max-time") + 1] == "37"
+    assert argv[-1] == "https://example.com/a;b"
+    assert "/bin/bash" not in argv
+
+
 def test_image_generation_explicitly_invokes_imagegen(
     worker_rpc: ModuleType,
     tmp_path: Path,
