@@ -40,6 +40,18 @@ Codex is the engineering capability inside Forge and may create one internal
 subagent. Hermes can independently parallelize orchestration across Forge and
 Recon.
 
+## Model And Audit Guardrails
+
+DeepSeek V4 Flash is the default Hermes model. When a request names a specific
+model that is unavailable, Hermes reports the effective model and asks for
+confirmation before falling back; it does not silently substitute a provider.
+
+Capabilities advertised by a worker are **available**, not automatically
+**verified**. A controlled audit marks a capability as verified only after its
+own completed job reports success. Audits are read-only: they do not install or
+modify skills, alter runtime configuration, or read worker artifacts directly.
+They retrieve output through the job lifecycle API instead.
+
 ## Local Setup
 
 Requirements:
@@ -106,6 +118,10 @@ The deployment is deliberately disposable. Valuable skills, code, and
 sanitized artifacts should be promoted manually to a separate private Git
 repository. Redeployment generates a new worker-control key and does not
 migrate legacy worker state.
+
+Manual host maintenance is deliberate too. Review `docker system df` before
+removing inactive Docker images; local image layers are not backup state, while
+the deployed services can be recreated from immutable GitHub-published images.
 
 ## Production
 
