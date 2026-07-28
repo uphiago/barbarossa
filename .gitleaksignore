@@ -1,0 +1,2 @@
+# Reviewed false positive: curl receives runtime environment variables, not literals.
+2e050bd85cc232c19f2e9d4bde5d3d5612b4cc61:docker-compose.yml:curl-auth-user:163

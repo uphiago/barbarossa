@@ -1,6 +1,5 @@
-# Secrets
-.env
-.env.*
+.git
+.env*
 !.env.example
 worker/ssh-keys/
 *.key
@@ -10,14 +9,8 @@ id_ed25519*
 credentials*
 *.backup
 *.bak
+*.log
 *.tar
 *.tar.gz
 *.tgz
 *.zip
-
-# Logs
-*.log
-
-# Editor
-*.swp
-*~

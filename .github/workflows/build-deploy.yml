@@ -9,6 +9,9 @@ on:
       - 'docker-compose.yml'
       - '.github/workflows/build-deploy.yml'
 
+permissions:
+  contents: read
+
 jobs:
   # ─── Detect which workers changed ───
   changes:
@@ -130,6 +133,11 @@ jobs:
             RUNTIME_DIR="$HOME/.config/barbarossa"
             WORKER_KEY="$RUNTIME_DIR/worker_key"
             AUTHORIZED_KEYS="$RUNTIME_DIR/authorized_keys"
+            DOCKER_AUTH_DIR=$(mktemp -d)
+            cleanup_registry_auth() {
+              rm -rf "$DOCKER_AUTH_DIR"
+            }
+            trap cleanup_registry_auth EXIT
             install -d -m 700 "$RUNTIME_DIR"
             umask 077
 
@@ -163,12 +171,15 @@ jobs:
             cat "$AUTHORIZED_KEYS.transition" > "$AUTHORIZED_KEYS"
             chmod 644 "$AUTHORIZED_KEYS"
 
-            echo "${{ secrets.GHCR_PAT }}" | $DOCKER login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "${{ secrets.GHCR_PAT }}" |
+              $DOCKER --config "$DOCKER_AUTH_DIR" login ghcr.io \
+                -u ${{ github.actor }} --password-stdin
             if [ ! -d ~/barbarossa ]; then
-              git clone https://x-access-token:${{ secrets.GHCR_PAT }}@github.com/uphiago/barbarossa.git ~/barbarossa
+              git clone https://github.com/uphiago/barbarossa.git ~/barbarossa
             fi
             cd ~/barbarossa
-            git pull https://x-access-token:${{ secrets.GHCR_PAT }}@github.com/uphiago/barbarossa.git
+            git remote set-url origin https://github.com/uphiago/barbarossa.git
+            git pull --ff-only origin main
 
             touch .env
             chmod 600 .env
@@ -182,7 +193,8 @@ jobs:
             $DOCKER volume inspect barbarossa_charlie-ssh >/dev/null 2>&1 ||
               FIRST_HOST_KEY_VOLUME=1
 
-            $DOCKER compose pull charlie oscar papa 2>/dev/null || true
+            $DOCKER --config "$DOCKER_AUTH_DIR" compose pull \
+              charlie oscar papa 2>/dev/null || true
             $DOCKER compose up -d --remove-orphans --force-recreate \
               --wait --wait-timeout 300 charlie oscar papa
             $DOCKER compose up -d --remove-orphans hermes

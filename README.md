@@ -42,29 +42,12 @@ Hermes supports multiple LLM providers (DeepSeek, OpenRouter, Anthropic, OpenAI,
 
 ## Production hardening
 
-The OVH host runs Ubuntu 26.04 LTS. Its public ingress is limited to key-only
-SSH on port 22; the `ubuntu` password and root login are locked. SSH permits
-only local forwarding to the loopback-bound Hermes dashboard on port 9119.
-UFW denies other inbound and routed traffic, and Fail2ban uses nftables with
-one-hour incremental SSH bans capped at 24 hours.
+Reusable host controls live under `ops/host/`. The public repository
+intentionally omits live addresses, account state, backup locations, completed
+deployment evidence, and other environment-specific operational records.
 
-Containers cannot reach the OpenStack metadata endpoints. The persistent
-`DOCKER-USER` rule is installed from
-`ops/host/barbarossa-container-firewall`, with its systemd unit in the same
-directory. SSH and Fail2ban source drop-ins are also under `ops/host/`.
-
-Every service has a memory limit, PID limit, bounded `json-file` logs,
-`no-new-privileges`, the Docker default AppArmor and seccomp profiles, and a
-healthcheck. `ModemManager`, `udisks2`, and `fwupd-refresh.timer` are disabled
-on the virtual server; qemu guest agent, Chrony, automatic security updates,
-Docker, SSH, UFW, and Fail2ban remain active.
-
-Host rollback archives contain secrets and stay outside Git:
-
-```text
-OVH:   /root/barbarossa-hardening-backup-<timestamp>/
-Local: ~/.local/state/barbarossa/backups/<timestamp>/
-```
+Every service has bounded resources and logs, healthchecks, and basic container
+containment. Production secrets and rollback material stay outside Git.
 
 Papa provides Tor but does not enforce Tor-only egress. Commands requiring
 anonymity must still explicitly use `--socks5-hostname` or `torsocks`.
