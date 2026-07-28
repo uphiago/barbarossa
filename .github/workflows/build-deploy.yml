@@ -187,7 +187,7 @@ jobs:
           remote="${OVH_USER}@${OVH_HOST}"
           ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
             "$remote" \
-            'install -d -m 0750 "$HOME/barbarossa"; find "$HOME/barbarossa" -mindepth 1 -maxdepth 1 ! -name .env -exec rm -rf -- {} +'
+            'install -d -m 0750 "$HOME/barbarossa"; sudo -n find "$HOME/barbarossa" -mindepth 1 -maxdepth 1 ! -name .env -exec rm -rf -- {} +; sudo -n chown "$(id -u):$(id -g)" "$HOME/barbarossa"'
           git archive "${GITHUB_SHA}" |
             ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
               "$remote" 'tar -x -C "$HOME/barbarossa"'
