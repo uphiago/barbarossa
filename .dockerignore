@@ -7,6 +7,11 @@ worker/ssh-keys/
 id_rsa*
 id_ed25519*
 credentials*
+.runtime/
+__pycache__/
+*.py[cod]
+router/.venv/
+router/dist/
 *.backup
 *.bak
 *.log

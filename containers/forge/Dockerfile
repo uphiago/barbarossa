@@ -39,7 +39,11 @@ RUN chmod 0755 \
     && chmod 0644 \
       /usr/local/share/barbarossa/codex/config.toml \
       /usr/local/share/barbarossa/codex/SKILL.md \
-    && rm -f /etc/ssh/ssh_host_*
+    && rm -f /etc/ssh/ssh_host_* \
+    && ln -s /ssh-host-keys/ssh_host_ed25519_key \
+      /etc/ssh/ssh_host_ed25519_key \
+    && ln -s /ssh-host-keys/ssh_host_ed25519_key.pub \
+      /etc/ssh/ssh_host_ed25519_key.pub
 
 ENV WORKER_USER=forge \
     WORKER_KIND=forge \
