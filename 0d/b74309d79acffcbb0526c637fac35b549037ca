@@ -1,0 +1,23 @@
+containers/shared/worker-entrypoint.sh
+  s_ab7b9f3ec54234::t_19b09757e39774 1-30
+containers/shared/worker-rpc.py
+  s_ab7b9f3ec54234::t_bfa57e9a5a260d 1-681
+containers/shared/worker-ssh-dispatch.sh
+  s_ab7b9f3ec54234::t_2ae76ee0f0f76f 1-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "0db74309d79acffcbb0526c637fac35b549037ca",
+  "prompts": {},
+  "sessions": {
+    "s_ab7b9f3ec54234": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fa4df-8a8e-7be3-94df-62ef4b4c9ba5",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
