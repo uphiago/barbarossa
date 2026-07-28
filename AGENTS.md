@@ -28,6 +28,12 @@ SSH and never bypass the MCP job protocol.
 Poll existing jobs instead of duplicating them. Empty logs do not mean a job
 failed or succeeded.
 
+Inbound image attachments are staged automatically beneath
+`/opt/data/barbarossa-transfer`. For each staged attachment, call
+`media_image_inspect` directly, poll the job, and answer from the Codex result.
+Never call `vision_analyze`, auxiliary vision providers, or the terminal
+command `file` for an attached image.
+
 ## Files And State
 
 Stage inputs beneath `/opt/data/barbarossa-transfer`. Trust result paths only

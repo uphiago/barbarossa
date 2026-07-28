@@ -22,6 +22,9 @@ def merge(target: dict[str, Any], updates: dict[str, Any]) -> None:
 
 def desired_config() -> dict[str, Any]:
     return {
+        "agent": {
+            "image_input_mode": "text",
+        },
         "model": {
             "provider": "deepseek",
             "name": "deepseek-v4-flash",
@@ -79,6 +82,14 @@ def configure(path: Path = CONFIG_PATH) -> None:
         model.pop("api_mode", None)
 
     merge(config, desired_config())
+    agent = config["agent"]
+    disabled_toolsets = agent.get("disabled_toolsets")
+    if not isinstance(disabled_toolsets, list):
+        disabled_toolsets = []
+        agent["disabled_toolsets"] = disabled_toolsets
+    if "vision" not in disabled_toolsets:
+        disabled_toolsets.append("vision")
+
     serialized = yaml.safe_dump(
         config,
         allow_unicode=False,

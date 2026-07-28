@@ -25,7 +25,12 @@ def test_configure_preserves_unrelated_state_and_is_private(
     configure = load_configure()
     path = tmp_path / "config.yaml"
     path.write_text(
-        "telegram:\n  allowed_users: '123'\nagent:\n  max_turns: 80\n",
+        "telegram:\n"
+        "  allowed_users: '123'\n"
+        "agent:\n"
+        "  max_turns: 80\n"
+        "  disabled_toolsets:\n"
+        "    - memory\n",
         encoding="utf-8",
     )
 
@@ -34,6 +39,8 @@ def test_configure_preserves_unrelated_state_and_is_private(
     result = configure.yaml.safe_load(path.read_text(encoding="utf-8"))
     assert result["telegram"]["allowed_users"] == "123"
     assert result["agent"]["max_turns"] == 80
+    assert result["agent"]["image_input_mode"] == "text"
+    assert result["agent"]["disabled_toolsets"] == ["memory", "vision"]
     assert result["delegation"]["max_concurrent_children"] == 3
     assert result["mcp_servers"]["barbarossa"][
         "supports_parallel_tool_calls"
