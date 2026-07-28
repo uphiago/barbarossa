@@ -50,7 +50,7 @@ jobs:
         run: |
           uv run --with pytest==9.1.1 --with pyyaml==6.0.3 \
             pytest tests/test-worker-rpc.py tests/test-hermes-configure.py -q
-          bash tests/infra-regression.sh
+          uv run --with pyyaml==6.0.3 bash tests/infra-regression.sh
       - name: Validate Compose
         run: |
           runtime="$(mktemp -d)"
