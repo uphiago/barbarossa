@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling==1.28.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "barbarossa-router"
+version = "0.1.0"
+description = "Typed MCP router for Barbarossa workers"
+requires-python = ">=3.12"
+dependencies = [
+  "asyncssh==2.24.0",
+  "mcp==2.0.0",
+  "pydantic==2.13.4",
+]
+
+[project.scripts]
+barbarossa-router = "barbarossa_router.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest==9.1.1",
+  "pytest-asyncio==1.4.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/barbarossa_router"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
