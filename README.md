@@ -73,12 +73,15 @@ UIDs, network isolation, and secret-free logs:
 ssh ovh 'cd "$HOME/barbarossa" && scripts/smoke-remote.sh'
 ```
 
-To verify image routing through the orchestrator itself, first stage the image
-under `/opt/data/barbarossa-transfer` in Hermes. Then ask Hermes to inspect that
-path with `media_image_inspect`. The expected flow is:
+Inbound image attachments are copied atomically from the private Hermes cache
+to `/opt/data/barbarossa-transfer` with mode `0600`. The gateway then instructs
+Hermes to inspect each staged path with `media_image_inspect`; it does not call
+an auxiliary vision provider. The expected flow is:
 
 ```text
-Hermes (DeepSeek)
+Telegram attachment
+  -> private staging bridge
+  -> Hermes (DeepSeek)
   -> hidden MCP media_image_inspect
   -> Forge codex lane
   -> Codex vision

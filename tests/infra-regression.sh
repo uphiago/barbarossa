@@ -25,7 +25,14 @@ assert all(
 )
 assert services["forge"]["mem_limit"] == "1408m"
 assert services["recon"]["mem_limit"] == "640m"
-assert services["hermes"]["mem_limit"] == "768m"
+assert services["hermes"]["mem_limit"] == "1024m"
+assert "/opt/barbarossa/gateway_entrypoint.py" in " ".join(
+    services["hermes"]["command"]
+)
+assert any(
+    "/opt/barbarossa/gateway_entrypoint.py:ro" in volume
+    for volume in services["hermes"]["volumes"]
+)
 assert services["forge"]["networks"] == ["hermes-forge"]
 assert services["recon"]["networks"] == ["hermes-recon"]
 assert set(services["hermes"]["networks"]) == {
@@ -83,6 +90,8 @@ grep -Fq 'supports_parallel_tool_calls": True' config/hermes/configure.py
 grep -Fq '"max_concurrent_children": 3' config/hermes/configure.py
 grep -Fq '"max_spawn_depth": 1' config/hermes/configure.py
 grep -Fq '"orchestrator_enabled": True' config/hermes/configure.py
+grep -Fq '"image_input_mode": "text"' config/hermes/configure.py
+grep -Fq '"vision"' config/hermes/configure.py
 grep -Fq '"name": "deepseek-v4-flash"' config/hermes/configure.py
 grep -Fq '"base_url": "https://api.deepseek.com/v1"' \
   config/hermes/configure.py

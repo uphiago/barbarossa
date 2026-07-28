@@ -107,7 +107,7 @@ services:
     <<: *service-defaults
     image: nousresearch/hermes-agent@sha256:545ef5a71b52b63aab08e29721701681d64465594ae5ffe7e860a8a758da0371
     hostname: hermes
-    mem_limit: 768m
+    mem_limit: 1024m
     pids_limit: 256
     cpus: 1.00
     cpu_shares: 512
@@ -121,7 +121,8 @@ services:
       - -lc
       - >-
         /opt/hermes/.venv/bin/python /opt/barbarossa/configure.py &&
-        exec /opt/hermes/.venv/bin/hermes gateway run
+        exec /opt/hermes/.venv/bin/python
+        /opt/barbarossa/gateway_entrypoint.py gateway run
     ports:
       - "${HERMES_DASHBOARD_BIND:-127.0.0.1}:${HERMES_DASHBOARD_PORT:-9119}:9119"
     environment:
@@ -150,6 +151,7 @@ services:
       - hermes-state:/opt/data
       - ${BARBAROSSA_ROUTER_BUNDLE:?set BARBAROSSA_ROUTER_BUNDLE}:/opt/barbarossa-router/barbarossa-router.pex:ro
       - ./config/hermes/configure.py:/opt/barbarossa/configure.py:ro
+      - ./config/hermes/gateway_entrypoint.py:/opt/barbarossa/gateway_entrypoint.py:ro
       - ./AGENTS.md:/opt/barbarossa/context/AGENTS.md:ro
       - ./skills/hermes/barbarossa-routing:/opt/barbarossa/context/skills/barbarossa-routing:ro
       - ./skills/hermes/barbarossa-codex:/opt/barbarossa/context/skills/barbarossa-codex:ro
