@@ -1,0 +1,21 @@
+containers/forge/forge-entrypoint.sh
+  s_ab7b9f3ec54234::t_b16ca1a316835f 1-15
+tests/container-integration.sh
+  s_ab7b9f3ec54234::t_156a33bba4eca3 1-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "0a3b4f62df6fb4eab2c67b9d0904270bae13c9ac",
+  "prompts": {},
+  "sessions": {
+    "s_ab7b9f3ec54234": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fa4df-8a8e-7be3-94df-62ef4b4c9ba5",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
