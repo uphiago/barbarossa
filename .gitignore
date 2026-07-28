@@ -18,6 +18,12 @@ credentials*
 # Logs
 *.log
 
+# Python
+__pycache__/
+*.py[cod]
+router/.venv/
+router/dist/
+
 # Editor
 *.swp
 *~
