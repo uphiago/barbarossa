@@ -74,10 +74,14 @@ Hermes remains based on the official upstream image. Its primary model and
 native delegated agents use DeepSeek V4 Flash. Native delegation is enabled
 with at most three Hermes children.
 
-Hermes runs `barbarossa-router` as an MCP stdio process. CI produces a
-read-only router runtime bundle with locked dependencies, which the deployment
-mounts into the official Hermes container. This avoids maintaining a fork of
-the Hermes image.
+Hermes runs `barbarossa-router` as an MCP stdio process. The router uses the
+stable MCP Python SDK v2 and exposes typed tools with structured results. The
+SDK's legacy-protocol compatibility allows the current Hermes MCP client to
+connect while keeping the router on the current API.
+
+CI produces a read-only router runtime bundle with locked dependencies, which
+the deployment mounts into the official Hermes container. This avoids
+maintaining a fork of the Hermes image.
 
 The router is the only component that holds worker control credentials. It
 performs admission control, stages job inputs, invokes worker commands through
@@ -122,8 +126,8 @@ Images:         ghcr.io/uphiago/barbarossa-forge
 MCP server:     barbarossa
 Users:          hermes, forge, recon
 Environment:    BARBAROSSA_*
-Jobs:           job_<type>_<id>
-Job workspace:  /workspace/jobs/<job-id>/
+Jobs:           job_{type}_{id}
+Job workspace:  /workspace/jobs/{job_id}/
 ```
 
 Logical capabilities keep functional names:
@@ -172,9 +176,9 @@ structured output and the final response.
 Image capabilities map as follows:
 
 ```text
-media.image.inspect  -> codex exec --image <path> ...
-media.image.generate -> codex exec '$imagegen ...'
-media.image.edit     -> codex exec --image <reference> '$imagegen ...'
+media.image.inspect  -> codex exec --image inputs/reference.png "Inspect it"
+media.image.generate -> codex exec '$imagegen Create the requested asset'
+media.image.edit     -> codex exec --image inputs/reference.png '$imagegen Edit it'
 ```
 
 The deployment verifies that the official `$imagegen` skill is available.
@@ -258,7 +262,7 @@ queued -> running -> succeeded | failed | cancelled | interrupted
 Each workspace has a stable layout:
 
 ```text
-/workspace/jobs/<job-id>/
+/workspace/jobs/{job_id}/
 |-- inputs/
 |-- outputs/
 |-- stdout.log
@@ -284,6 +288,12 @@ removed or until the relevant volume or stack is destroyed. This state is
 convenient but not durable. The operator or an authorized agent manually
 promotes valuable files, skills, and configuration to the selected private Git
 repository.
+
+Hermes stages outbound files only under `/opt/data/barbarossa-transfer`.
+Downloaded worker results are safely extracted under
+`/opt/data/barbarossa-results/{job_id}`. The router rejects paths elsewhere in
+Hermes state so configuration, sessions, and SSH material cannot be submitted
+as job inputs.
 
 ## Persistent And Disposable State
 
@@ -460,6 +470,7 @@ check fails.
 - [Hermes delegation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation)
 - [Hermes MCP integration](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp/)
 - [Hermes Codex skill](https://hermes-agent.nousresearch.com/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-codex)
+- [MCP Python SDK v2](https://py.sdk.modelcontextprotocol.io/whats-new/)
 - [Codex configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference)
 - [Codex advanced configuration](https://learn.chatgpt.com/docs/config-file/config-advanced)
 - [Codex image inputs](https://learn.chatgpt.com/docs/image-inputs)
