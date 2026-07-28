@@ -16,6 +16,6 @@ Forge tool. Pass only staged absolute paths to the router.
 - Poll the returned job rather than starting another copy.
 - Accept result paths only beneath `/opt/data/barbarossa-results/<job_id>`.
 
-Forge runs Codex GPT-5.6 at medium reasoning. Codex may use one internal
+Forge runs Codex GPT-5.6 Luna at medium reasoning. Codex may use one internal
 subagent when useful. Promote valuable source or artifacts to a private Git
 repository manually; worker state remains disposable.

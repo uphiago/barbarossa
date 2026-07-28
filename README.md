@@ -27,7 +27,7 @@ login.
 | Capability | Execution |
 | --- | --- |
 | Shell, files, builds, conversions | Forge runtime lane |
-| Repository engineering | Codex GPT-5.6, medium reasoning |
+| Repository engineering | Codex GPT-5.6 Luna, medium reasoning |
 | Image inspection, generation, editing | Codex lane |
 | HTTP and authorized network tools | Recon, direct |
 | Explicit anonymous network work | Recon, Tor |
@@ -46,7 +46,7 @@ Requirements:
 - DeepSeek API key
 - Telegram bot token
 - Dashboard credentials
-- Codex access token file
+- Codex access token or headless `auth.json`
 
 ```bash
 cp .env.example .env

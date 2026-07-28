@@ -42,3 +42,33 @@ def test_configure_preserves_unrelated_state_and_is_private(
         "BARBAROSSA_FORGE_HOST"
     ] == "forge"
     assert os.stat(path).st_mode & 0o777 == 0o600
+
+
+def test_install_context_replaces_only_barbarossa_assets(
+    tmp_path: Path,
+) -> None:
+    configure = load_configure()
+    source = tmp_path / "source"
+    data = tmp_path / "data"
+    (source / "skills" / "barbarossa-routing").mkdir(parents=True)
+    (source / "skills" / "barbarossa-routing" / "SKILL.md").write_text(
+        "new routing",
+        encoding="utf-8",
+    )
+    (source / "AGENTS.md").write_text("agent context", encoding="utf-8")
+    (data / "skills" / "bundled").mkdir(parents=True)
+    (data / "skills" / "bundled" / "SKILL.md").write_text(
+        "keep",
+        encoding="utf-8",
+    )
+
+    configure.install_context(source, data)
+
+    assert (data / "AGENTS.md").read_text(encoding="utf-8") == "agent context"
+    assert os.stat(data / "AGENTS.md").st_mode & 0o777 == 0o600
+    assert (
+        data / "skills" / "barbarossa-routing" / "SKILL.md"
+    ).read_text(encoding="utf-8") == "new routing"
+    assert (
+        data / "skills" / "bundled" / "SKILL.md"
+    ).read_text(encoding="utf-8") == "keep"

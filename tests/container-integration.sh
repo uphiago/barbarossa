@@ -22,6 +22,10 @@ build_forge() {
   docker run --rm --user forge --entrypoint python3 \
     barbarossa-forge:test -c \
     'import tomllib; tomllib.load(open("/home/forge/.codex/config.toml","rb"))'
+  docker run --rm --user forge -e CODEX_ACCESS_TOKEN=invalid \
+    --entrypoint codex barbarossa-forge:test \
+    exec --strict-config --skip-git-repo-check --json 'reply OK' \
+    2>&1 | grep -F 'invalid agent identity JWT format'
 }
 
 build_recon() {

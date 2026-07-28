@@ -16,6 +16,12 @@ TERMINAL_STATES = {"succeeded", "failed", "cancelled", "interrupted"}
 
 def build_service(settings: Settings | None = None) -> RouterService:
     resolved = settings or Settings.from_env()
+    for directory in (
+        resolved.state_db.parent,
+        resolved.input_root,
+        resolved.result_root,
+    ):
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
     store = JobStore(resolved.state_db)
     transport = SSHTransport(resolved)
     scheduler = Scheduler(store, transport)

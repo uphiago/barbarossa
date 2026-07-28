@@ -9,6 +9,7 @@ if [ -z "$worker_home" ]; then
   exit 1
 fi
 
+install -d -m 0755 /run/sshd
 install -d -m 0700 /ssh-host-keys
 if [ ! -f /ssh-host-keys/ssh_host_ed25519_key ]; then
   ssh-keygen -q -t ed25519 -N '' \

@@ -52,6 +52,7 @@ assert set(secrets) == {
     "worker_authorized_keys",
     "worker_known_hosts",
     "codex_access_token",
+    "codex_auth_json",
 }
 
 workflow_path = Path(".github/workflows/build-deploy.yml")

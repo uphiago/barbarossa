@@ -58,7 +58,7 @@ class SSHTransport:
             port=22,
             username=username,
             client_keys=[self.settings.ssh_key],
-            known_hosts=self.settings.known_hosts,
+            known_hosts=str(self.settings.known_hosts),
             agent_path=None,
             preferred_auth=["publickey"],
             connect_timeout=10,

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -7,6 +8,8 @@ from typing import Any
 import yaml
 
 CONFIG_PATH = Path("/opt/data/config.yaml")
+CONTEXT_ROOT = Path("/opt/barbarossa/context")
+DATA_ROOT = Path("/opt/data")
 
 
 def merge(target: dict[str, Any], updates: dict[str, Any]) -> None:
@@ -101,5 +104,40 @@ def configure(path: Path = CONFIG_PATH) -> None:
         raise
 
 
+def install_context(
+    source_root: Path = CONTEXT_ROOT,
+    data_root: Path = DATA_ROOT,
+) -> None:
+    agents_source = source_root / "AGENTS.md"
+    if agents_source.is_file():
+        destination = data_root / "AGENTS.md"
+        descriptor, temporary = tempfile.mkstemp(
+            prefix=".AGENTS.md.",
+            dir=data_root,
+        )
+        os.close(descriptor)
+        try:
+            shutil.copyfile(agents_source, temporary)
+            os.chmod(temporary, 0o600)
+            os.replace(temporary, destination)
+        except Exception:
+            Path(temporary).unlink(missing_ok=True)
+            raise
+
+    skills_source = source_root / "skills"
+    skills_destination = data_root / "skills"
+    skills_destination.mkdir(mode=0o700, parents=True, exist_ok=True)
+    for source in sorted(skills_source.glob("barbarossa-*")):
+        if not source.is_dir() or source.is_symlink():
+            continue
+        destination = skills_destination / source.name
+        if destination.is_symlink() or destination.is_file():
+            destination.unlink()
+        elif destination.exists():
+            shutil.rmtree(destination)
+        shutil.copytree(source, destination)
+
+
 if __name__ == "__main__":
+    install_context()
     configure()

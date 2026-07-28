@@ -48,7 +48,8 @@ jobs:
           uv run pytest -q
       - name: Test worker RPC and infrastructure
         run: |
-          uv run --with pytest==9.1.1 pytest tests/test-worker-rpc.py -q
+          uv run --with pytest==9.1.1 --with pyyaml==6.0.3 \
+            pytest tests/test-worker-rpc.py tests/test-hermes-configure.py -q
           bash tests/infra-regression.sh
       - name: Validate Compose
         run: |
@@ -56,7 +57,7 @@ jobs:
           trap 'rm -rf "$runtime"' EXIT
           touch "$runtime/key" "$runtime/authorized_keys" \
             "$runtime/known_hosts" "$runtime/codex_access_token" \
-            "$runtime/router.pex"
+            "$runtime/codex_auth.json" "$runtime/router.pex"
           DEEPSEEK_API_KEY=validate \
           TELEGRAM_BOT_TOKEN=validate \
           DASHBOARD_USER=validate \
@@ -66,6 +67,7 @@ jobs:
           BARBAROSSA_AUTHORIZED_KEYS_FILE="$runtime/authorized_keys" \
           BARBAROSSA_KNOWN_HOSTS_FILE="$runtime/known_hosts" \
           BARBAROSSA_CODEX_TOKEN_FILE="$runtime/codex_access_token" \
+          BARBAROSSA_CODEX_AUTH_FILE="$runtime/codex_auth.json" \
           BARBAROSSA_ROUTER_BUNDLE="$runtime/router.pex" \
             docker compose config --quiet
       - name: Scan tracked history for secrets
@@ -106,7 +108,7 @@ jobs:
         working-directory: router
         run: |
           mkdir -p dist
-          uv export --frozen --no-dev --no-emit-project \
+          uv export --quiet --frozen --no-dev --no-emit-project \
             --format requirements-txt \
             --output-file dist/runtime-requirements.txt
           uv run --frozen --group bundle pex \
@@ -203,6 +205,7 @@ jobs:
       - name: Install Codex deployment token
         env:
           CODEX_ACCESS_TOKEN: ${{ secrets.CODEX_ACCESS_TOKEN }}
+          CODEX_AUTH_JSON_B64: ${{ secrets.CODEX_AUTH_JSON_B64 }}
           OVH_HOST: ${{ secrets.OVH_HOST }}
           OVH_USER: ${{ secrets.OVH_USER }}
         run: |
@@ -212,6 +215,12 @@ jobs:
               ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
                 "${OVH_USER}@${OVH_HOST}" \
                 'umask 077; install -d -m 0700 "$HOME/.config/barbarossa/runtime"; cat > "$HOME/.config/barbarossa/runtime/codex_access_token"'
+          fi
+          if [ -n "$CODEX_AUTH_JSON_B64" ]; then
+            printf '%s' "$CODEX_AUTH_JSON_B64" | base64 --decode |
+              ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
+                "${OVH_USER}@${OVH_HOST}" \
+                'umask 077; install -d -m 0700 "$HOME/.config/barbarossa/runtime"; cat > "$HOME/.config/barbarossa/runtime/codex_auth.json"'
           fi
       - name: Cut over and smoke test
         env:

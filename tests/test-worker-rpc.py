@@ -61,6 +61,20 @@ def test_codex_environment_reads_only_scoped_secrets(
     assert "GH_TOKEN" not in runtime_env
 
 
+def test_codex_environment_ignores_empty_optional_token(
+    worker_rpc: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    token = tmp_path / "codex"
+    token.touch()
+    monkeypatch.setenv("CODEX_ACCESS_TOKEN_FILE", str(token))
+
+    assert "CODEX_ACCESS_TOKEN" not in worker_rpc.job_environment(
+        "code.delegate"
+    )
+
+
 def test_codex_argv_is_not_shell_interpolated(
     worker_rpc: ModuleType,
     tmp_path: Path,
@@ -111,8 +125,15 @@ def test_network_tor_is_explicit(
 
     assert direct == ["/bin/bash", "-lc", "nmap example.com"]
     assert tor == [
-        "torsocks",
-        "--isolate",
+        "/usr/bin/env",
+        "ALL_PROXY=socks5h://127.0.0.1:9050",
+        "HTTP_PROXY=socks5h://127.0.0.1:9050",
+        "HTTPS_PROXY=socks5h://127.0.0.1:9050",
+        "all_proxy=socks5h://127.0.0.1:9050",
+        "http_proxy=socks5h://127.0.0.1:9050",
+        "https_proxy=socks5h://127.0.0.1:9050",
+        "NO_PROXY=",
+        "no_proxy=",
         "/bin/bash",
         "-lc",
         "curl example.com",
@@ -137,6 +158,8 @@ def test_network_fetch_uses_fixed_argv_and_job_timeout(
 
     assert argv[0] == "curl"
     assert argv[argv.index("--max-time") + 1] == "37"
+    assert argv[argv.index("--retry") + 1] == "3"
+    assert "--retry-all-errors" in argv
     assert argv[-1] == "https://example.com/a;b"
     assert "/bin/bash" not in argv
 
@@ -185,6 +208,25 @@ def test_upload_extracts_regular_top_level_files(
     job = worker_rpc.workspace(worker_rpc.WORKSPACE_ROOT, SAFE_JOB_ID)
     assert names == ["diagram.png"]
     assert (job.inputs / "diagram.png").read_bytes() == b"png"
+
+
+def test_upload_accepts_non_seekable_ssh_stdin(
+    worker_rpc: ModuleType,
+) -> None:
+    class NonSeekable(io.BytesIO):
+        def seekable(self) -> bool:
+            return False
+
+        def seek(self, *args: object, **kwargs: object) -> int:
+            raise OSError(29, "Illegal seek")
+
+    source = NonSeekable(
+        _archive([(tarfile.TarInfo("diagram.png"), b"png")])
+    )
+
+    assert worker_rpc.extract_upload(SAFE_JOB_ID, source) == [
+        "diagram.png"
+    ]
 
 
 @pytest.mark.parametrize("name", ["../secret", "/etc/passwd", "dir/file"])
@@ -250,6 +292,26 @@ def test_logs_redact_scoped_secret_files(
 
     assert "scoped-secret-value" not in logs["stdout"]
     assert "[REDACTED]" in logs["stdout"]
+
+
+def test_logs_redact_codex_auth_json(
+    worker_rpc: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    auth = tmp_path / "auth.json"
+    auth.write_text(
+        '{"tokens":{"access_token":"auth-secret-value"}}',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("CODEX_AUTH_JSON_FILE", str(auth))
+    job = worker_rpc.workspace(worker_rpc.WORKSPACE_ROOT, SAFE_JOB_ID)
+    job.root.mkdir(parents=True)
+    job.stdout.write_text("auth-secret-value", encoding="utf-8")
+    job.stderr.touch()
+    job.status.write_text('{"status":"succeeded"}', encoding="utf-8")
+
+    assert worker_rpc.read_logs(SAFE_JOB_ID)["stdout"] == "[REDACTED]"
 
 
 def test_start_and_run_runtime_job(

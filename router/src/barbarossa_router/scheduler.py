@@ -40,11 +40,6 @@ class Scheduler:
         self.store = store
         self.transport = transport
         self.poll_interval = poll_interval
-        self._lanes = {
-            "runtime": asyncio.Semaphore(1),
-            "codex": asyncio.Semaphore(1),
-            "recon": asyncio.Semaphore(1),
-        }
         self._active_jobs: dict[Lane, str] = {}
         self._tick_lock = asyncio.Lock()
         self._loop_task: asyncio.Task[None] | None = None
@@ -81,88 +76,37 @@ class Scheduler:
         async with self._tick_lock:
             for lane in ("runtime", "codex", "recon"):
                 typed_lane: Lane = lane
-                if self.lane_is_active(typed_lane):
+                claimed = await self.store.claim_next(typed_lane)
+                if claimed is None:
                     continue
-                queued = await self.store.next_queued(typed_lane)
-                if queued is None:
-                    continue
-                await self._lanes[typed_lane].acquire()
-                self._active_jobs[typed_lane] = queued.job_id
-                request = await self.store.get_request(queued.job_id)
+                self._active_jobs[typed_lane] = claimed.job_id
+                request = await self.store.get_request(claimed.job_id)
                 try:
-                    response = await self.transport.start(
-                        queued.worker,
-                        queued.job_id,
+                    await self.transport.start(
+                        claimed.worker,
+                        claimed.job_id,
                         request,
                     )
-                    remote_pid = int(response["remote_pid"])
                 except Exception as exc:
                     await self.store.finish(
-                        queued.job_id,
+                        claimed.job_id,
                         status="failed",
                         exit_code=None,
                         artifacts=[],
                         error=f"worker start failed: {exc}",
                     )
-                    self._release_lane(typed_lane, queued.job_id)
-                    continue
-                try:
-                    await self.store.mark_running(queued.job_id, remote_pid)
-                except Exception as exc:
-                    try:
-                        await self.transport.cancel(
-                            queued.worker,
-                            queued.job_id,
-                        )
-                    except Exception:
-                        pass
-                    await self.store.finish(
-                        queued.job_id,
-                        status="failed",
-                        exit_code=None,
-                        artifacts=[],
-                        error=f"could not persist running job: {exc}",
-                    )
-                    self._release_lane(typed_lane, queued.job_id)
+                    self._release_lane(typed_lane, claimed.job_id)
 
     async def reconcile(self) -> None:
         for job in await self.store.list_running():
             try:
                 remote = await self.transport.status(job.worker, job.job_id)
             except Exception:
-                if self.lane_is_active(job.lane):
-                    await self.store.finish(
-                        job.job_id,
-                        status="interrupted",
-                        exit_code=None,
-                        artifacts=[],
-                        error="duplicate active job in lane during reconciliation",
-                    )
-                else:
-                    await self._reserve_lane(job)
+                await self._reserve_lane(job)
                 continue
 
             remote_status = remote.get("status")
             if remote_status == "running":
-                if self.lane_is_active(job.lane):
-                    try:
-                        cancelled = await self.transport.cancel(
-                            job.worker,
-                            job.job_id,
-                        )
-                        await self._finish_from_remote(job, cancelled)
-                    except Exception:
-                        await self.store.finish(
-                            job.job_id,
-                            status="interrupted",
-                            exit_code=None,
-                            artifacts=[],
-                            error=(
-                                "duplicate active job in lane during "
-                                "reconciliation"
-                            ),
-                        )
-                    continue
                 await self._reserve_lane(job)
                 continue
             if remote_status in TERMINAL_STATES:
@@ -177,7 +121,6 @@ class Scheduler:
             )
 
     async def _reserve_lane(self, job: JobStatus) -> None:
-        await self._lanes[job.lane].acquire()
         self._active_jobs[job.lane] = job.job_id
 
     async def poll_once(self) -> None:
@@ -250,4 +193,3 @@ class Scheduler:
         if self._active_jobs.get(lane) != job_id:
             return
         del self._active_jobs[lane]
-        self._lanes[lane].release()
