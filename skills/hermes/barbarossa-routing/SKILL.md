@@ -21,3 +21,16 @@ combines results; it does not perform heavy execution in its own container.
 Hermes may run up to three independent child agents in parallel. Parallelize
 independent Forge runtime, Forge Codex, and Recon work; keep dependent work
 sequential.
+
+## Controlled Capability Audits
+
+- A capability is available but untested until a completed job provides
+  evidence for that exact capability. Report available but untested separately
+  from tested capabilities.
+- Do not use `skill_manage` during an audit. Do not modify skills, global
+  configuration, credentials, containers, or persistent files unless the user
+  explicitly asks for that change.
+- Retrieve job outputs through `job_status`, `job_logs`, and `job_result`.
+  Do not use `read_file` or the terminal to inspect result paths directly.
+- When an audit requests a model that is not the effective model, follow the
+  explicit-model rule in `AGENTS.md` before submitting any jobs.

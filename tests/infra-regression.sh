@@ -126,6 +126,9 @@ grep -Fq 'restrict,command="/usr/local/bin/worker-ssh-dispatch"' \
   scripts/deploy-runtime-files.sh
 grep -Fq 'docker compose' .github/workflows/build-deploy.yml
 grep -Fq 'mcp test barbarossa' scripts/smoke-remote.sh
+grep -Fq 'available but untested' skills/hermes/barbarossa-routing/SKILL.md
+grep -Fq 'Do not use `skill_manage`' skills/hermes/barbarossa-routing/SKILL.md
+grep -Fq 'Do not read artifacts directly' skills/hermes/barbarossa-codex/SKILL.md
 
 for forbidden in StrictHostKeyChecking=no ssh-keyscan; do
   if grep -R -Fq "$forbidden" .github scripts; then
