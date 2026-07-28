@@ -1,240 +1,224 @@
-name: Build & Deploy Workers
+name: Build and deploy Barbarossa
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'workers/**'
-      - 'docker-compose.yml'
-      - '.github/workflows/build-deploy.yml'
+      - ".github/workflows/build-deploy.yml"
+      - "containers/**"
+      - "router/**"
+      - "config/**"
+      - "skills/**"
+      - "scripts/**"
+      - "tests/**"
+      - "docker-compose.yml"
+      - "AGENTS.md"
+      - "WORKERS.md"
 
 permissions:
   contents: read
 
+concurrency:
+  group: barbarossa-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/uphiago/barbarossa
+
 jobs:
-  # ─── Detect which workers changed ───
-  changes:
+  validate:
     runs-on: ubuntu-latest
-    outputs:
-      charlie: ${{ steps.filter.outputs.charlie }}
-      oscar: ${{ steps.filter.outputs.oscar }}
-      papa: ${{ steps.filter.outputs.papa }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
-        id: filter
         with:
-          filters: |
-            charlie:
-              - 'workers/charlie/**'
-              - 'workers/shared/**'
-            oscar:
-              - 'workers/oscar/**'
-              - 'workers/shared/**'
-            papa:
-              - 'workers/papa/**'
-              - 'workers/shared/**'
+          fetch-depth: 0
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
+        with:
+          version: "0.8.4"
+          enable-cache: true
+      - name: Test router
+        working-directory: router
+        run: |
+          uv sync --frozen
+          uv run pytest -q
+      - name: Test worker RPC and infrastructure
+        run: |
+          uv run --with pytest==9.1.1 pytest tests/test-worker-rpc.py -q
+          bash tests/infra-regression.sh
+      - name: Validate Compose
+        run: |
+          runtime="$(mktemp -d)"
+          trap 'rm -rf "$runtime"' EXIT
+          touch "$runtime/key" "$runtime/authorized_keys" \
+            "$runtime/known_hosts" "$runtime/codex_access_token" \
+            "$runtime/router.pex"
+          DEEPSEEK_API_KEY=validate \
+          TELEGRAM_BOT_TOKEN=validate \
+          DASHBOARD_USER=validate \
+          DASHBOARD_PASS=validate \
+          DASHBOARD_SECRET=validate \
+          BARBAROSSA_WORKER_SSH_KEY_FILE="$runtime/key" \
+          BARBAROSSA_AUTHORIZED_KEYS_FILE="$runtime/authorized_keys" \
+          BARBAROSSA_KNOWN_HOSTS_FILE="$runtime/known_hosts" \
+          BARBAROSSA_CODEX_TOKEN_FILE="$runtime/codex_access_token" \
+          BARBAROSSA_ROUTER_BUNDLE="$runtime/router.pex" \
+            docker compose config --quiet
+      - name: Scan tracked history for secrets
+        run: |
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          curl -fsSLo "$tmp/gitleaks.tar.gz" \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          printf '%s  %s\n' \
+            551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb \
+            "$tmp/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf "$tmp/gitleaks.tar.gz" -C "$tmp" gitleaks
+          "$tmp/gitleaks" git --log-opts=--all --max-decode-depth=2 \
+            --no-banner --redact .
 
-  # ─── CHARLIE ───
-  build-charlie:
-    needs: changes
-    if: needs.changes.outputs.charlie == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4.5.1
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
-        with:
-          context: .
-          file: workers/charlie/Dockerfile
-          push: true
-          tags: ghcr.io/${{ github.repository_owner }}/barbarossa-charlie:latest
-
-  # ─── OSCAR ───
-  build-oscar:
-    needs: changes
-    if: needs.changes.outputs.oscar == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4.5.1
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
-        with:
-          context: .
-          file: workers/oscar/Dockerfile
-          push: true
-          tags: ghcr.io/${{ github.repository_owner }}/barbarossa-oscar:latest
-
-  # ─── PAPA ───
-  build-papa:
-    needs: changes
-    if: needs.changes.outputs.papa == 'true'
+  build-router:
+    needs: validate
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
+        with:
+          version: "0.8.4"
+          enable-cache: true
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4.5.1
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build PEX
+        working-directory: router
+        run: |
+          mkdir -p dist
+          uv export --frozen --no-dev --no-emit-project \
+            --format requirements-txt \
+            --output-file dist/runtime-requirements.txt
+          uv run --frozen --group bundle pex \
+            -r dist/runtime-requirements.txt \
+            -D src \
+            -o dist/barbarossa-router.pex \
+            --python-shebang=/opt/hermes/.venv/bin/python \
+            -e barbarossa_router.cli:main
+          BARBAROSSA_ROUTER_PEX="$PWD/dist/barbarossa-router.pex" \
+          BARBAROSSA_ROUTER_PYTHON="$(command -v python3)" \
+            uv run pytest tests/test_packaged_server.py -q
+      - uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: router
+          file: router/Containerfile.bundle
+          push: true
+          tags: |
+            ghcr.io/uphiago/barbarossa-router-bundle:${{ github.sha }}
+            ghcr.io/uphiago/barbarossa-router-bundle:latest
+
+  build-workers:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - worker: forge
+            image: barbarossa-forge
+            dockerfile: containers/forge/Dockerfile
+          - worker: recon
+            image: barbarossa-recon
+            dockerfile: containers/recon/Dockerfile
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4.5.1
+        with:
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
-          file: workers/papa/Dockerfile
+          file: ${{ matrix.dockerfile }}
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/barbarossa-papa:latest
+          tags: |
+            ghcr.io/uphiago/${{ matrix.image }}:${{ github.sha }}
+            ghcr.io/uphiago/${{ matrix.image }}:latest
 
-  # ─── Deploy to OVH VPS ───
   deploy:
-    needs: [build-charlie, build-oscar, build-papa]
-    if: |
-      always() &&
-      !contains(needs.*.result, 'failure') &&
-      !contains(needs.*.result, 'cancelled')
+    needs: [validate, build-router, build-workers]
     runs-on: ubuntu-latest
-    env:
-      BARBAROSSA_WORKER_SSH_KEY_B64: ${{ secrets.BARBAROSSA_WORKER_SSH_KEY_B64 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Deploy to OVH
-        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
-        with:
-          host: ${{ secrets.OVH_HOST }}
-          username: ${{ secrets.OVH_USER }}
-          key: ${{ secrets.OVH_SSH_KEY }}
-          envs: BARBAROSSA_WORKER_SSH_KEY_B64
-          script: |
-            set -eu
-            if ! command -v docker >/dev/null 2>&1; then
-              curl -fsSL https://get.docker.com | sudo sh
-              sudo usermod -aG docker $USER
-            fi
-            DOCKER="docker"
-            docker ps >/dev/null 2>&1 || DOCKER="sudo docker"
-
-            RUNTIME_DIR="$HOME/.config/barbarossa"
-            WORKER_KEY="$RUNTIME_DIR/worker_key"
-            AUTHORIZED_KEYS="$RUNTIME_DIR/authorized_keys"
-            DOCKER_AUTH_DIR=$(mktemp -d)
-            cleanup_registry_auth() {
-              rm -rf "$DOCKER_AUTH_DIR"
-            }
-            trap cleanup_registry_auth EXIT
-            install -d -m 700 "$RUNTIME_DIR"
-            umask 077
-
-            if [ -n "${BARBAROSSA_WORKER_SSH_KEY_B64:-}" ]; then
-              printf '%s' "$BARBAROSSA_WORKER_SSH_KEY_B64" |
-                base64 --decode > "$WORKER_KEY.next"
-            elif [ -f "$WORKER_KEY" ]; then
-              cp "$WORKER_KEY" "$WORKER_KEY.next"
-            elif $DOCKER exec hermes cat /opt/data/ssh/key \
-              > "$WORKER_KEY.next" 2>/dev/null; then
-              echo "Reusing the active worker key from Hermes"
-            else
-              rm -f "$WORKER_KEY.next"
-              ssh-keygen -q -t ed25519 -N "" \
-                -C "hermes@barbarossa" -f "$WORKER_KEY.next"
-              rm -f "$WORKER_KEY.next.pub"
-              echo "Generated a worker key for this fresh deployment"
-            fi
-
-            chmod 600 "$WORKER_KEY.next"
-            ssh-keygen -y -f "$WORKER_KEY.next" > "$AUTHORIZED_KEYS.next"
-
-            if [ -f "$AUTHORIZED_KEYS" ]; then
-              cat "$AUTHORIZED_KEYS" "$AUTHORIZED_KEYS.next" |
-                awk '!seen[$0]++' > "$AUTHORIZED_KEYS.transition"
-            else
-              cp "$AUTHORIZED_KEYS.next" "$AUTHORIZED_KEYS.transition"
-            fi
-
-            touch "$AUTHORIZED_KEYS"
-            cat "$AUTHORIZED_KEYS.transition" > "$AUTHORIZED_KEYS"
-            chmod 644 "$AUTHORIZED_KEYS"
-
-            echo "${{ secrets.GHCR_PAT }}" |
-              $DOCKER --config "$DOCKER_AUTH_DIR" login ghcr.io \
-                -u ${{ github.actor }} --password-stdin
-            if [ ! -d ~/barbarossa ]; then
-              git clone https://github.com/uphiago/barbarossa.git ~/barbarossa
-            fi
-            cd ~/barbarossa
-            git remote set-url origin https://github.com/uphiago/barbarossa.git
-            git pull --ff-only origin main
-
-            touch .env
-            chmod 600 .env
-            if grep -q '^BARBAROSSA_AUTHORIZED_KEYS_FILE=' .env; then
-              sed -i "s|^BARBAROSSA_AUTHORIZED_KEYS_FILE=.*|BARBAROSSA_AUTHORIZED_KEYS_FILE=$AUTHORIZED_KEYS|" .env
-            else
-              printf '\nBARBAROSSA_AUTHORIZED_KEYS_FILE=%s\n' "$AUTHORIZED_KEYS" >> .env
-            fi
-
-            FIRST_HOST_KEY_VOLUME=0
-            $DOCKER volume inspect barbarossa_charlie-ssh >/dev/null 2>&1 ||
-              FIRST_HOST_KEY_VOLUME=1
-
-            $DOCKER --config "$DOCKER_AUTH_DIR" compose pull \
-              charlie oscar papa 2>/dev/null || true
-            $DOCKER compose up -d --remove-orphans --force-recreate \
-              --wait --wait-timeout 300 charlie oscar papa
-            $DOCKER compose up -d --remove-orphans hermes
-
-            $DOCKER exec hermes mkdir -p /opt/data/ssh
-            $DOCKER cp "$WORKER_KEY.next" hermes:/opt/data/ssh/key.next
-            $DOCKER exec hermes sh -c \
-              'chown hermes:hermes /opt/data/ssh/key.next &&
-               chmod 600 /opt/data/ssh/key.next'
-
-            for host in charlie oscar papa; do
-              $DOCKER exec -u hermes hermes \
-                ssh -i /opt/data/ssh/key.next \
-                  -o StrictHostKeyChecking=no \
-                  -o UserKnownHostsFile=/dev/null \
-                  -o ConnectTimeout=5 \
-                  "root@$host" true
-            done
-
-            $DOCKER exec hermes mv /opt/data/ssh/key.next /opt/data/ssh/key
-            mv "$WORKER_KEY.next" "$WORKER_KEY"
-            chmod 600 "$WORKER_KEY"
-            cat "$AUTHORIZED_KEYS.next" > "$AUTHORIZED_KEYS"
-            chmod 644 "$AUTHORIZED_KEYS"
-            for worker in charlie oscar papa; do
-              $DOCKER exec "$worker" sh -c \
-                'cp /ssh-keys/authorized_keys /root/.ssh/authorized_keys &&
-                 chmod 600 /root/.ssh/authorized_keys'
-            done
-
-            if [ "$FIRST_HOST_KEY_VOLUME" -eq 1 ]; then
-              $DOCKER exec -u hermes hermes sh -c \
-                'for host in charlie oscar papa; do
-                   ssh-keygen -R "$host" 2>/dev/null || true
-                 done'
-            fi
-
-            # First-run config
-            $DOCKER exec hermes hermes config set terminal.backend ssh 2>/dev/null || true
-            $DOCKER exec hermes hermes config set model.provider deepseek 2>/dev/null || true
-            $DOCKER exec hermes hermes config set model.name deepseek/deepseek-v4-flash 2>/dev/null || true
-            $DOCKER exec hermes hermes config set model.default deepseek/deepseek-v4-flash 2>/dev/null || true
-            $DOCKER image prune -f
+      - name: Configure verified OVH SSH
+        env:
+          OVH_HOST_KEY: ${{ secrets.OVH_HOST_KEY }}
+          OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+        run: |
+          set -eu
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$OVH_HOST_KEY" > "$HOME/.ssh/known_hosts"
+          printf '%s\n' "$OVH_SSH_KEY" > "$HOME/.ssh/ovh"
+          chmod 0600 "$HOME/.ssh/known_hosts" "$HOME/.ssh/ovh"
+          ssh-keygen -l -f "$HOME/.ssh/known_hosts"
+      - name: Upload reviewed source
+        env:
+          OVH_HOST: ${{ secrets.OVH_HOST }}
+          OVH_USER: ${{ secrets.OVH_USER }}
+        run: |
+          set -eu
+          remote="${OVH_USER}@${OVH_HOST}"
+          ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
+            "$remote" \
+            'install -d -m 0750 "$HOME/barbarossa"; find "$HOME/barbarossa" -mindepth 1 -maxdepth 1 ! -name .env -exec rm -rf -- {} +'
+          git archive "${GITHUB_SHA}" |
+            ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
+              "$remote" 'tar -x -C "$HOME/barbarossa"'
+      - name: Authenticate registry
+        env:
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          OVH_HOST: ${{ secrets.OVH_HOST }}
+          OVH_USER: ${{ secrets.OVH_USER }}
+        run: |
+          set -eu
+          printf '%s' "$GHCR_PAT" |
+            ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
+              "${OVH_USER}@${OVH_HOST}" \
+              'docker login ghcr.io -u uphiago --password-stdin >/dev/null'
+      - name: Install Codex deployment token
+        env:
+          CODEX_ACCESS_TOKEN: ${{ secrets.CODEX_ACCESS_TOKEN }}
+          OVH_HOST: ${{ secrets.OVH_HOST }}
+          OVH_USER: ${{ secrets.OVH_USER }}
+        run: |
+          set -eu
+          if [ -n "$CODEX_ACCESS_TOKEN" ]; then
+            printf '%s' "$CODEX_ACCESS_TOKEN" |
+              ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
+                "${OVH_USER}@${OVH_HOST}" \
+                'umask 077; install -d -m 0700 "$HOME/.config/barbarossa/runtime"; cat > "$HOME/.config/barbarossa/runtime/codex_access_token"'
+          fi
+      - name: Cut over and smoke test
+        env:
+          OVH_HOST: ${{ secrets.OVH_HOST }}
+          OVH_USER: ${{ secrets.OVH_USER }}
+        run: |
+          set -eu
+          ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
+            "${OVH_USER}@${OVH_HOST}" \
+            "cd \"\$HOME/barbarossa\" && BARBAROSSA_IMAGE_TAG='${GITHUB_SHA}' scripts/deploy-runtime-files.sh && scripts/smoke-remote.sh"

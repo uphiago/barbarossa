@@ -32,6 +32,9 @@ def parser() -> argparse.ArgumentParser:
     commands = root.add_subparsers(dest="operator_command", required=True)
     commands.add_parser("serve")
     commands.add_parser("health")
+    for command in ("status", "logs", "result"):
+        inspection = commands.add_parser(command)
+        inspection.add_argument("job_id")
     submit = commands.add_parser("submit")
     submit.add_argument("--capability", required=True)
     submit.add_argument("--command")
@@ -54,6 +57,13 @@ async def run_operator_command(args: argparse.Namespace) -> int:
     if args.operator_command == "health":
         try:
             dump(await service.health())
+            return 0
+        finally:
+            await service.transport.close()
+    if args.operator_command in {"status", "logs", "result"}:
+        try:
+            operation = getattr(service, args.operator_command)
+            dump(await operation(args.job_id))
             return 0
         finally:
             await service.transport.close()
