@@ -25,14 +25,14 @@ implements the capability and job contracts.
 This repository contains one reviewed **reference profile** with three
 containers:
 
-```mermaid
-flowchart TD
-    hermes["Hermes<br/>orchestration"]
-    forge["Forge<br/>runtime + Codex"]
-    recon["Recon<br/>direct network + Tor"]
-
-    hermes -->|execution and code capabilities| forge
-    hermes -->|authorized network capabilities| recon
+```text
+Hermes (orchestration)
+├── Forge
+│   ├── runtime
+│   └── Codex
+└── Recon
+    ├── direct network
+    └── Tor (explicit)
 ```
 
 The typed MCP v2 router runs as a hidden subprocess inside the official Hermes
@@ -329,8 +329,6 @@ forwarding restrictions, and cloud metadata filtering.
 
 - [`AGENTS.md`](AGENTS.md): checked-in Hermes operating context
 - [`WORKERS.md`](WORKERS.md): capability and lane contract
-- [`docs/superpowers/specs`](docs/superpowers/specs): architecture rationale
-- [`docs/superpowers/plans`](docs/superpowers/plans): reviewed implementation plans
 
 ## License
 
