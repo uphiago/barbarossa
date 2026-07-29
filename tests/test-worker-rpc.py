@@ -75,6 +75,22 @@ def test_codex_environment_ignores_empty_optional_token(
     )
 
 
+def test_codex_environment_uses_staged_secret_fallback(
+    worker_rpc: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    (staging / "github_token").write_text("github-token\n", encoding="utf-8")
+    monkeypatch.delenv("GH_TOKEN_FILE", raising=False)
+    monkeypatch.setenv("BARBAROSSA_SECRET_STAGING_DIR", str(staging))
+
+    assert worker_rpc.job_environment("code.delegate")["GH_TOKEN"] == (
+        "github-token"
+    )
+
+
 def test_codex_argv_is_not_shell_interpolated(
     worker_rpc: ModuleType,
     tmp_path: Path,
