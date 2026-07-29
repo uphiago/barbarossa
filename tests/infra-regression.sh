@@ -86,6 +86,9 @@ assert forge_environment["CODEX_ACCESS_TOKEN_FILE"] == (
 assert forge_environment["GH_TOKEN_FILE"] == (
     "/run/barbarossa-secrets/github_token"
 )
+assert forge_environment["CODEX_AUTH_JSON_FILE"] == (
+    "/home/forge/.codex/auth.json"
+)
 
 workflow_path = Path(".github/workflows/build-deploy.yml")
 workflow = yaml.safe_load(workflow_path.read_text())
@@ -158,6 +161,12 @@ grep -Fq 'router/.venv/' .gitignore
 grep -Fq 'install -d -o forge -g forge -m 0700 /run/barbarossa-secrets' \
   containers/forge/forge-entrypoint.sh
 grep -Fq '"/run/barbarossa-secrets/$secret"' \
+  containers/forge/forge-entrypoint.sh
+grep -Fq \
+  'auth_source="${CODEX_AUTH_SOURCE_FILE:-/run/secrets/codex_auth_json}"' \
+  containers/forge/forge-entrypoint.sh
+grep -Fq \
+  'auth_target="${CODEX_AUTH_JSON_FILE:-/home/forge/.codex/auth.json}"' \
   containers/forge/forge-entrypoint.sh
 grep -Fq 'router/dist/' .gitignore
 grep -Fq '.runtime/' .gitignore
