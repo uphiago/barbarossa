@@ -44,6 +44,21 @@ compose() {
     -f "$root/docker-compose.yml" "$@"
 }
 
+prune_release_images() {
+  for repository in \
+    ghcr.io/uphiago/barbarossa-router-bundle \
+    ghcr.io/uphiago/barbarossa-forge \
+    ghcr.io/uphiago/barbarossa-recon; do
+    "$docker" image ls "$repository" \
+      --format '{{.Repository}}:{{.Tag}}' |
+      while IFS= read -r image; do
+        [ -n "$image" ] || continue
+        [ "$image" != "$repository:<none>" ] || continue
+        "$docker" image rm "$image" >/dev/null 2>&1 || true
+      done
+  done
+}
+
 compose down --remove-orphans
 "$docker" rm -f charlie oscar papa hermes 2>/dev/null || true
 "$docker" volume rm \
@@ -78,4 +93,5 @@ chmod 0644 "$known_hosts"
 
 compose up -d --remove-orphans --force-recreate --wait --wait-timeout 300 \
   hermes
+prune_release_images
 "$docker" image prune -f >/dev/null

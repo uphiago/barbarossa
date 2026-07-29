@@ -318,8 +318,9 @@ deliberately disposable: valuable skills, code, and sanitized artifacts should
 be promoted manually to a separate private Git repository.
 
 Redeployment generates a new worker-control key and does not migrate legacy
-worker state. Review `docker system df` before removing inactive images; image
-layers are replaceable deployment material, not backup state.
+worker state. A production cutover removes older tagged Barbarossa release
+images after the replacement services are healthy. It does not remove volumes
+or apply a time-based retention policy.
 
 ## Extending Barbarossa
 
