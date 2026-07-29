@@ -33,6 +33,13 @@ assert any(
     "/opt/barbarossa/gateway_entrypoint.py:ro" in volume
     for volume in services["hermes"]["volumes"]
 )
+assert any(
+    "/etc/cont-init.d/016-barbarossa-secrets:ro" in volume
+    for volume in services["hermes"]["volumes"]
+)
+assert services["hermes"]["environment"]["BARBAROSSA_SSH_KEY"] == (
+    "/run/barbarossa-secrets/worker_key"
+)
 assert services["forge"]["networks"] == ["hermes-forge"]
 assert services["recon"]["networks"] == ["hermes-recon"]
 assert set(services["hermes"]["networks"]) == {
