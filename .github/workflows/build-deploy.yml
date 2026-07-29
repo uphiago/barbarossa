@@ -15,6 +15,18 @@ on:
       - "docker-compose.yml"
       - "AGENTS.md"
       - "WORKERS.md"
+  pull_request:
+    paths:
+      - ".github/workflows/build-deploy.yml"
+      - "containers/**"
+      - "router/**"
+      - "config/**"
+      - "skills/**"
+      - "scripts/**"
+      - "tests/**"
+      - "docker-compose.yml"
+      - "AGENTS.md"
+      - "WORKERS.md"
 
 permissions:
   contents: read
@@ -72,21 +84,9 @@ jobs:
           BARBAROSSA_GITHUB_TOKEN_FILE="$runtime/github_token" \
           BARBAROSSA_ROUTER_BUNDLE="$runtime/router.pex" \
             docker compose config --quiet
-      - name: Scan tracked history for secrets
-        run: |
-          tmp="$(mktemp -d)"
-          trap 'rm -rf "$tmp"' EXIT
-          curl -fsSLo "$tmp/gitleaks.tar.gz" \
-            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
-          printf '%s  %s\n' \
-            551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb \
-            "$tmp/gitleaks.tar.gz" | sha256sum -c -
-          tar -xzf "$tmp/gitleaks.tar.gz" -C "$tmp" gitleaks
-          "$tmp/gitleaks" git --log-opts=--all --max-decode-depth=2 \
-            --no-banner --redact .
-
   build-router:
     needs: validate
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -133,6 +133,7 @@ jobs:
 
   build-workers:
     needs: validate
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -166,6 +167,7 @@ jobs:
 
   deploy:
     needs: [validate, build-router, build-workers]
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

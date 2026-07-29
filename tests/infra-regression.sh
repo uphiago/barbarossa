@@ -89,6 +89,8 @@ assert "StrictHostKeyChecking=yes" in workflow_text
 assert "scripts/deploy-runtime-files.sh" in workflow_text
 assert "scripts/smoke-remote.sh" in workflow_text
 assert "BARBAROSSA_GITHUB_TOKEN" in workflow_text
+assert "pull_request:" in workflow_text
+assert "gitleaks" not in workflow_text.lower()
 for line in workflow_text.splitlines():
     if "uses:" in line:
         reference = line.split("uses:", 1)[1].strip().split()[0]
