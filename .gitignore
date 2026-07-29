@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+hermes.env
+!hermes.env.example
 worker/ssh-keys/
 *.key
 *.pem

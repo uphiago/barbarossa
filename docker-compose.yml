@@ -19,12 +19,12 @@ services:
       dockerfile: containers/forge/Dockerfile
     hostname: forge
     read_only: true
-    mem_limit: 1408m
-    pids_limit: 384
-    cpus: 1.50
+    mem_limit: ${BARBAROSSA_FORGE_MEMORY:-1408m}
+    pids_limit: ${BARBAROSSA_FORGE_PIDS:-384}
+    cpus: ${BARBAROSSA_FORGE_CPUS:-1.50}
     cpu_shares: 1024
     environment:
-      TZ: America/Sao_Paulo
+      TZ: ${BARBAROSSA_TIMEZONE:-UTC}
       WORKER_USER: forge
       WORKER_KIND: forge
       WORKER_HOME: /home/forge
@@ -32,6 +32,9 @@ services:
       CODEX_HOME: /home/forge/.codex
       CODEX_ACCESS_TOKEN_FILE: /run/barbarossa-secrets/codex_access_token
       GH_TOKEN_FILE: /run/barbarossa-secrets/github_token
+      BARBAROSSA_CODEX_MODEL: ${BARBAROSSA_CODEX_MODEL:-gpt-5.6-luna}
+      BARBAROSSA_CODEX_REASONING_EFFORT: ${BARBAROSSA_CODEX_REASONING_EFFORT:-medium}
+      BARBAROSSA_CODEX_MAX_SUBAGENTS: ${BARBAROSSA_CODEX_MAX_SUBAGENTS:-1}
     secrets:
       - source: worker_authorized_keys
         target: worker_authorized_keys
@@ -72,15 +75,15 @@ services:
       dockerfile: containers/recon/Dockerfile
     hostname: recon
     read_only: true
-    mem_limit: 640m
-    pids_limit: 256
-    cpus: 1.00
+    mem_limit: ${BARBAROSSA_RECON_MEMORY:-640m}
+    pids_limit: ${BARBAROSSA_RECON_PIDS:-256}
+    cpus: ${BARBAROSSA_RECON_CPUS:-1.00}
     cpu_shares: 256
     cap_add:
       - NET_ADMIN
       - NET_RAW
     environment:
-      TZ: America/Sao_Paulo
+      TZ: ${BARBAROSSA_TIMEZONE:-UTC}
       WORKER_USER: recon
       WORKER_KIND: recon
       WORKER_HOME: /home/recon
@@ -111,9 +114,9 @@ services:
     <<: *service-defaults
     image: nousresearch/hermes-agent@sha256:545ef5a71b52b63aab08e29721701681d64465594ae5ffe7e860a8a758da0371
     hostname: hermes
-    mem_limit: 1024m
-    pids_limit: 256
-    cpus: 1.00
+    mem_limit: ${BARBAROSSA_HERMES_MEMORY:-1024m}
+    pids_limit: ${BARBAROSSA_HERMES_PIDS:-256}
+    cpus: ${BARBAROSSA_HERMES_CPUS:-1.00}
     cpu_shares: 512
     depends_on:
       forge:
@@ -129,16 +132,11 @@ services:
         /opt/barbarossa/gateway_entrypoint.py gateway run
     ports:
       - "${HERMES_DASHBOARD_BIND:-127.0.0.1}:${HERMES_DASHBOARD_PORT:-9119}:9119"
+    env_file:
+      - ${BARBAROSSA_HERMES_ENV_FILE:?set BARBAROSSA_HERMES_ENV_FILE}
     environment:
-      TZ: America/Sao_Paulo
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?set DEEPSEEK_API_KEY}
-      TOOL_GATEWAY_USER_TOKEN: ${TOOL_GATEWAY_USER_TOKEN:-}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?set TELEGRAM_BOT_TOKEN}
-      TELEGRAM_ALLOWED_USERS: ${TELEGRAM_ALLOWED_USERS:-}
+      TZ: ${BARBAROSSA_TIMEZONE:-UTC}
       HERMES_DASHBOARD: "1"
-      HERMES_DASHBOARD_BASIC_AUTH_USERNAME: ${DASHBOARD_USER:?set DASHBOARD_USER}
-      HERMES_DASHBOARD_BASIC_AUTH_PASSWORD: ${DASHBOARD_PASS:?set DASHBOARD_PASS}
-      HERMES_DASHBOARD_BASIC_AUTH_SECRET: ${DASHBOARD_SECRET:?set DASHBOARD_SECRET}
       BARBAROSSA_SSH_KEY: /run/secrets/worker_key
       BARBAROSSA_KNOWN_HOSTS: /run/secrets/known_hosts
       BARBAROSSA_STATE_DB: /opt/data/router/jobs.sqlite3
@@ -154,7 +152,7 @@ services:
         target: known_hosts
     volumes:
       - hermes-state:/opt/data
-      - ${BARBAROSSA_ROUTER_BUNDLE:?set BARBAROSSA_ROUTER_BUNDLE}:/opt/barbarossa-router/barbarossa-router.pex:ro
+      - ${BARBAROSSA_RUNTIME_DIR:-.runtime}/barbarossa-router.pex:/opt/barbarossa-router/barbarossa-router.pex:ro
       - ./config/hermes/configure.py:/opt/barbarossa/configure.py:ro
       - ./config/hermes/gateway_entrypoint.py:/opt/barbarossa/gateway_entrypoint.py:ro
       - ./AGENTS.md:/opt/barbarossa/context/AGENTS.md:ro
@@ -193,14 +191,14 @@ volumes:
 
 secrets:
   worker_private_key:
-    file: ${BARBAROSSA_WORKER_SSH_KEY_FILE:?set BARBAROSSA_WORKER_SSH_KEY_FILE}
+    file: ${BARBAROSSA_RUNTIME_DIR:-.runtime}/worker_key
   worker_authorized_keys:
-    file: ${BARBAROSSA_AUTHORIZED_KEYS_FILE:?set BARBAROSSA_AUTHORIZED_KEYS_FILE}
+    file: ${BARBAROSSA_RUNTIME_DIR:-.runtime}/authorized_keys
   worker_known_hosts:
-    file: ${BARBAROSSA_KNOWN_HOSTS_FILE:?set BARBAROSSA_KNOWN_HOSTS_FILE}
+    file: ${BARBAROSSA_RUNTIME_DIR:-.runtime}/known_hosts
   codex_access_token:
-    file: ${BARBAROSSA_CODEX_TOKEN_FILE:?set BARBAROSSA_CODEX_TOKEN_FILE}
+    file: ${BARBAROSSA_CODEX_TOKEN_FILE:-${BARBAROSSA_RUNTIME_DIR:-.runtime}/codex_access_token}
   codex_auth_json:
-    file: ${BARBAROSSA_CODEX_AUTH_FILE:?set BARBAROSSA_CODEX_AUTH_FILE}
+    file: ${BARBAROSSA_CODEX_AUTH_FILE:-${BARBAROSSA_RUNTIME_DIR:-.runtime}/codex_auth.json}
   github_token:
-    file: ${BARBAROSSA_GITHUB_TOKEN_FILE:?set BARBAROSSA_GITHUB_TOKEN_FILE}
+    file: ${BARBAROSSA_GITHUB_TOKEN_FILE:-${BARBAROSSA_RUNTIME_DIR:-.runtime}/github_token}

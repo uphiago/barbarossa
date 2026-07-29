@@ -1,5 +1,3 @@
-model = "gpt-5.6-luna"
-model_reasoning_effort = "medium"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 web_search = "live"
@@ -11,7 +9,6 @@ image_generation = true
 
 [agents]
 enabled = true
-max_concurrent_threads_per_session = 1
 
 [shell_environment_policy]
 inherit = "none"

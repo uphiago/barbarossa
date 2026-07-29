@@ -17,6 +17,9 @@ SAFE_JOB_ID = "job_runtime_01J00000000000000000000000"
 def worker_rpc(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> ModuleType:
     monkeypatch.setenv("WORKSPACE_ROOT", str(tmp_path / "workspace"))
     monkeypatch.setenv("WORKER_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("BARBAROSSA_CODEX_MODEL", "test-codex")
+    monkeypatch.setenv("BARBAROSSA_CODEX_REASONING_EFFORT", "medium")
+    monkeypatch.setenv("BARBAROSSA_CODEX_MAX_SUBAGENTS", "1")
     spec = importlib.util.spec_from_file_location("worker_rpc", WORKER_RPC_PATH)
     assert spec is not None
     assert spec.loader is not None
@@ -73,6 +76,33 @@ def test_codex_environment_ignores_empty_optional_token(
     assert "CODEX_ACCESS_TOKEN" not in worker_rpc.job_environment(
         "code.delegate"
     )
+
+
+def test_codex_command_uses_configured_execution_profile(
+    worker_rpc: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(worker_rpc, "WORKSPACE_ROOT", tmp_path)
+    monkeypatch.setenv("BARBAROSSA_CODEX_MODEL", "gpt-custom")
+    monkeypatch.setenv("BARBAROSSA_CODEX_REASONING_EFFORT", "high")
+    monkeypatch.setenv("BARBAROSSA_CODEX_MAX_SUBAGENTS", "4")
+    job = worker_rpc.workspace(tmp_path, "job_codex_01ARZ3NDEKTSV4RRFFQ69G5FAV")
+    job.outputs.mkdir(parents=True)
+
+    argv = worker_rpc.build_argv(
+        job,
+        {
+            "capability": "code.delegate",
+            "lane": "codex",
+            "prompt": "test",
+        },
+    )
+
+    assert argv[:2] == ["codex", "exec"]
+    assert ["--model", "gpt-custom"] == argv[2:4]
+    assert "model_reasoning_effort=\"high\"" in argv
+    assert "agents.max_concurrent_threads_per_session=4" in argv
 
 
 def test_codex_environment_uses_staged_secret_fallback(

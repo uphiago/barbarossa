@@ -7,9 +7,9 @@ cluster.
 
 | Layer | Purpose | Model or tools |
 | --- | --- | --- |
-| Hermes | Planning, routing, context, up to three parallel children | DeepSeek V4 Flash |
+| Hermes | Planning, routing, context, native delegation | Configured main model |
 | Forge runtime lane | Shell, files, compilation | Non-root isolated job |
-| Forge Codex lane | Code, image understanding and generation | Codex GPT-5.6 Luna medium, at most one subagent |
+| Forge Codex lane | Code, image understanding and generation | Configured Codex profile |
 | Recon lane | Authorized network work, direct or explicit Tor | nmap, ProjectDiscovery tools, Tor |
 
 Forge and Recon do not share a Docker network. Hermes reaches each worker
@@ -18,11 +18,12 @@ SSH and never bypass the MCP job protocol.
 
 ## Explicit Model Requests
 
-The configured default is DeepSeek V4 Flash. When a user names a requested
-model, first report the effective model. If that requested model is unavailable,
-ask for confirmation before continuing with any fallback; never silently
-substitute the default model. Do not change the global model configuration to
-satisfy a one-off request.
+Provider, model, reasoning, delegation width, and delegation depth are
+deployment settings. When a user names a requested model, first report the
+effective model. If that requested model is unavailable, ask for confirmation
+before continuing with any fallback; never silently substitute the configured
+default. Do not change the global model configuration to satisfy a one-off
+request.
 
 ## Routing
 

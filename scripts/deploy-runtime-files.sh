@@ -28,18 +28,12 @@ rm -f "$worker_key" "$worker_key.pub" "$authorized_keys" "$known_hosts"
 ssh-keygen -q -t ed25519 -N "" -C "hermes@barbarossa" -f "$worker_key"
 printf 'restrict,command="/usr/local/bin/worker-ssh-dispatch" %s\n' \
   "$(cat "$worker_key.pub")" > "$authorized_keys"
-chmod 0644 "$worker_key" "$authorized_keys" "$codex_token" "$codex_auth"
-chmod 0600 "$github_token"
+chmod 0600 "$worker_key" "$codex_token" "$codex_auth" "$github_token"
+chmod 0644 "$authorized_keys"
 
 cat > "$compose_env" <<EOF
 BARBAROSSA_IMAGE_TAG=$tag
-BARBAROSSA_WORKER_SSH_KEY_FILE=$worker_key
-BARBAROSSA_AUTHORIZED_KEYS_FILE=$authorized_keys
-BARBAROSSA_KNOWN_HOSTS_FILE=$known_hosts
-BARBAROSSA_CODEX_TOKEN_FILE=$codex_token
-BARBAROSSA_CODEX_AUTH_FILE=$codex_auth
-BARBAROSSA_GITHUB_TOKEN_FILE=$github_token
-BARBAROSSA_ROUTER_BUNDLE=$router_bundle
+BARBAROSSA_RUNTIME_DIR=$runtime
 EOF
 chmod 0600 "$compose_env"
 
