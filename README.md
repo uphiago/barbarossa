@@ -42,6 +42,10 @@ Codex is the engineering capability inside Forge and may create one internal
 subagent. Hermes can independently parallelize orchestration across Forge and
 Recon.
 
+When configured, the GitHub credential is injected as `GH_TOKEN` only into
+Codex and image jobs inside Forge. It is not exposed to Hermes, Recon, or the
+general runtime lane.
+
 ## Model And Audit Guardrails
 
 DeepSeek V4 Flash is the default Hermes model. When a request names a specific

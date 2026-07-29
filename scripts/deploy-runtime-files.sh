@@ -14,10 +14,11 @@ authorized_keys="$runtime/authorized_keys"
 known_hosts="$runtime/known_hosts"
 codex_token="$runtime/codex_access_token"
 codex_auth="$runtime/codex_auth.json"
+github_token="$runtime/github_token"
 router_bundle="$runtime/barbarossa-router.pex"
 compose_env="$runtime/compose.env"
 
-touch "$codex_token" "$codex_auth"
+touch "$codex_token" "$codex_auth" "$github_token"
 if [ ! -s "$codex_token" ] && [ ! -s "$codex_auth" ]; then
   printf 'missing Codex access token or auth.json in %s\n' "$runtime" >&2
   exit 1
@@ -28,6 +29,7 @@ ssh-keygen -q -t ed25519 -N "" -C "hermes@barbarossa" -f "$worker_key"
 printf 'restrict,command="/usr/local/bin/worker-ssh-dispatch" %s\n' \
   "$(cat "$worker_key.pub")" > "$authorized_keys"
 chmod 0644 "$worker_key" "$authorized_keys" "$codex_token" "$codex_auth"
+chmod 0600 "$github_token"
 
 cat > "$compose_env" <<EOF
 BARBAROSSA_IMAGE_TAG=$tag
@@ -36,6 +38,7 @@ BARBAROSSA_AUTHORIZED_KEYS_FILE=$authorized_keys
 BARBAROSSA_KNOWN_HOSTS_FILE=$known_hosts
 BARBAROSSA_CODEX_TOKEN_FILE=$codex_token
 BARBAROSSA_CODEX_AUTH_FILE=$codex_auth
+BARBAROSSA_GITHUB_TOKEN_FILE=$github_token
 BARBAROSSA_ROUTER_BUNDLE=$router_bundle
 EOF
 chmod 0600 "$compose_env"
