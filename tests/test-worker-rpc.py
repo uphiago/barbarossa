@@ -43,6 +43,23 @@ def test_runtime_environment_contains_no_secret(
     assert set(env) == {"HOME", "LANG", "PATH", "TZ"}
 
 
+def test_supervisor_environment_preserves_only_file_backed_codex_profile(
+    worker_rpc: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CODEX_AUTH_JSON_FILE", "/staged/auth.json")
+    monkeypatch.setenv("GH_TOKEN", "must-not-propagate")
+
+    env = worker_rpc.supervisor_environment()
+
+    assert env["CODEX_AUTH_JSON_FILE"] == "/staged/auth.json"
+    assert env["BARBAROSSA_CODEX_MODEL"] == "test-codex"
+    assert env["BARBAROSSA_CODEX_REASONING_EFFORT"] == "medium"
+    assert env["BARBAROSSA_CODEX_MAX_SUBAGENTS"] == "1"
+    assert "GH_TOKEN" not in env
+    assert "CODEX_ACCESS_TOKEN" not in env
+
+
 def test_codex_environment_reads_only_scoped_secrets(
     worker_rpc: ModuleType,
     monkeypatch: pytest.MonkeyPatch,

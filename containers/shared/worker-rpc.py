@@ -182,6 +182,22 @@ def job_environment(capability: str) -> dict[str, str]:
     return environment
 
 
+def supervisor_environment() -> dict[str, str]:
+    environment = job_environment("runtime.execute")
+    for variable in (
+        "CODEX_ACCESS_TOKEN_FILE",
+        "CODEX_AUTH_JSON_FILE",
+        "GH_TOKEN_FILE",
+        "BARBAROSSA_CODEX_MODEL",
+        "BARBAROSSA_CODEX_REASONING_EFFORT",
+        "BARBAROSSA_CODEX_MAX_SUBAGENTS",
+    ):
+        value = os.environ.get(variable)
+        if value:
+            environment[variable] = value
+    return environment
+
+
 def require_text(request: dict[str, Any], field: str) -> str:
     value = request.get(field)
     if not isinstance(value, str) or not value:
@@ -367,7 +383,7 @@ def validate_request(request: Any) -> dict[str, Any]:
 
 
 def launch_supervisor(job_id: str) -> int:
-    environment = job_environment("runtime.execute")
+    environment = supervisor_environment()
     environment.update(
         {
             "WORKSPACE_ROOT": str(WORKSPACE_ROOT),
