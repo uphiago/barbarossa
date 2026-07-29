@@ -94,6 +94,11 @@ assert "scripts/deploy-runtime-files.sh" in workflow_text
 assert "scripts/smoke-remote.sh" in workflow_text
 assert "BARBAROSSA_GITHUB_TOKEN" in workflow_text
 assert "pull_request:" in workflow_text
+assert '      - "v*"' in workflow_text
+assert "branches: [main]" not in workflow_text
+assert workflow_text.count(
+    "startsWith(github.ref, 'refs/tags/v')"
+) == 3
 assert "gitleaks" not in workflow_text.lower()
 for line in workflow_text.splitlines():
     if "uses:" in line:

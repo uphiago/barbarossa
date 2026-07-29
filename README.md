@@ -25,10 +25,14 @@ implements the capability and job contracts.
 This repository contains one reviewed **reference profile** with three
 containers:
 
-```text
-               Hermes
-              /      \
-   Forge (runtime + Codex)   Recon (direct + Tor)
+```mermaid
+flowchart TD
+    hermes["Hermes<br/>orchestration"]
+    forge["Forge<br/>runtime + Codex"]
+    recon["Recon<br/>direct network + Tor"]
+
+    hermes -->|execution and code capabilities| forge
+    hermes -->|authorized network capabilities| recon
 ```
 
 The typed MCP v2 router runs as a hidden subprocess inside the official Hermes
@@ -286,7 +290,26 @@ general-purpose root shell.
 
 ## Production
 
-The GitHub Actions workflow:
+Every pull request runs validation only. Building images and deploying to the
+configured host require either a version tag matching `v*` or an explicit
+manual workflow dispatch. Ordinary pushes and merges to `main` do not deploy.
+
+Create an annotated release tag from a reviewed `main` commit:
+
+```bash
+git switch main
+git pull --ff-only
+git tag -a v2.0.0 -m "Barbarossa v2.0.0"
+git push origin v2.0.0
+```
+
+For an intentional deployment without creating a release tag:
+
+```bash
+gh workflow run build-deploy.yml --ref main
+```
+
+The release workflow:
 
 - tests the router, worker RPC, Hermes configuration, and infrastructure;
 - validates Docker Compose;
