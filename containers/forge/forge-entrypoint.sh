@@ -21,13 +21,14 @@ for secret in codex_access_token github_token; do
   fi
 done
 
-auth_source="${CODEX_AUTH_JSON_FILE:-/run/secrets/codex_auth_json}"
+auth_source="${CODEX_AUTH_SOURCE_FILE:-/run/secrets/codex_auth_json}"
+auth_target="${CODEX_AUTH_JSON_FILE:-/home/forge/.codex/auth.json}"
 if [ -s "$auth_source" ]; then
   python3 -c \
     'import json,sys; value=json.load(open(sys.argv[1], encoding="utf-8")); assert isinstance(value, dict) and ("tokens" in value or "OPENAI_API_KEY" in value)' \
     "$auth_source"
   install -o forge -g forge -m 0600 \
-    "$auth_source" /home/forge/.codex/auth.json
+    "$auth_source" "$auth_target"
 fi
 
 exec /usr/local/bin/worker-entrypoint "$@"
