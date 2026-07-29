@@ -168,6 +168,12 @@ grep -Fq \
 grep -Fq \
   'auth_target="${CODEX_AUTH_JSON_FILE:-/home/forge/.codex/auth.json}"' \
   containers/forge/forge-entrypoint.sh
+grep -Fq 'session_environment="SetEnv=\' \
+  containers/forge/forge-entrypoint.sh
+grep -Fq 'BARBAROSSA_CODEX_MODEL=$codex_model' \
+  containers/forge/forge-entrypoint.sh
+grep -Fq 'exec /usr/local/bin/worker-entrypoint "$@" -o "$session_environment"' \
+  containers/forge/forge-entrypoint.sh
 grep -Fq 'router/dist/' .gitignore
 grep -Fq '.runtime/' .gitignore
 grep -Fq '.env*' .dockerignore
