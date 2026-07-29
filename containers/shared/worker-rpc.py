@@ -139,6 +139,20 @@ def process_matches(pid: int, expected_start_time: int) -> bool:
         return False
 
 
+def readable_secret_path(variable: str, default_path: str) -> Path | None:
+    configured = Path(os.environ.get(f"{variable}_FILE", default_path))
+    staged = Path(
+        os.environ.get(
+            "BARBAROSSA_SECRET_STAGING_DIR",
+            "/run/barbarossa-secrets",
+        )
+    ) / Path(default_path).name
+    for path in (configured, staged):
+        if path.is_file() and os.access(path, os.R_OK):
+            return path
+    return None
+
+
 def job_environment(capability: str) -> dict[str, str]:
     environment = {
         "HOME": str(WORKER_HOME),
@@ -155,10 +169,8 @@ def job_environment(capability: str) -> dict[str, str]:
             ("CODEX_ACCESS_TOKEN", "/run/secrets/codex_access_token"),
             ("GH_TOKEN", "/run/secrets/github_token"),
         ):
-            secret_path = Path(
-                os.environ.get(f"{variable}_FILE", default_path)
-            )
-            if secret_path.is_file():
+            secret_path = readable_secret_path(variable, default_path)
+            if secret_path is not None:
                 value = secret_path.read_text(encoding="utf-8").removesuffix(
                     "\n"
                 )
@@ -525,8 +537,8 @@ def redact(data: bytes) -> bytes:
         ("CODEX_ACCESS_TOKEN", "/run/secrets/codex_access_token"),
         ("GH_TOKEN", "/run/secrets/github_token"),
     ):
-        secret_path = Path(os.environ.get(f"{variable}_FILE", default_path))
-        if secret_path.is_file():
+        secret_path = readable_secret_path(variable, default_path)
+        if secret_path is not None:
             value = secret_path.read_text(encoding="utf-8").removesuffix("\n")
             if len(value) >= 4 and "\n" not in value and "\r" not in value:
                 values.append(value)
