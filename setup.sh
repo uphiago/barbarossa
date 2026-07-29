@@ -21,16 +21,40 @@ set -a
 . "$root/.env"
 set +a
 
-for variable in \
-  DEEPSEEK_API_KEY TELEGRAM_BOT_TOKEN \
-  DASHBOARD_USER DASHBOARD_PASS DASHBOARD_SECRET; do
-  test -n "${!variable:-}" || {
-    printf 'missing required variable: %s\n' "$variable" >&2
-    exit 1
-  }
-done
+hermes_env="${BARBAROSSA_HERMES_ENV_FILE:-$root/hermes.env}"
+case "$hermes_env" in
+  /*) ;;
+  *) hermes_env="$root/${hermes_env#./}" ;;
+esac
+test -f "$hermes_env" || {
+  printf 'missing Hermes configuration: %s\n' "$hermes_env" >&2
+  exit 1
+}
+docker compose --env-file "$root/.env" \
+  -f "$root/docker-compose.yml" config --format json |
+  python3 -c '
+import json
+import sys
+
+environment = json.load(sys.stdin)["services"]["hermes"]["environment"]
+required = (
+    "HERMES_MODEL_PROVIDER",
+    "HERMES_MODEL_NAME",
+    "TELEGRAM_BOT_TOKEN",
+    "HERMES_DASHBOARD_BASIC_AUTH_USERNAME",
+    "HERMES_DASHBOARD_BASIC_AUTH_PASSWORD",
+    "HERMES_DASHBOARD_BASIC_AUTH_SECRET",
+)
+missing = [name for name in required if not environment.get(name)]
+if missing:
+    raise SystemExit("missing required Hermes variables: " + ", ".join(missing))
+'
 
 runtime="${BARBAROSSA_RUNTIME_DIR:-$root/.runtime}"
+case "$runtime" in
+  /*) ;;
+  *) runtime="$root/${runtime#./}" ;;
+esac
 install -d -m 0700 "$runtime"
 umask 077
 
@@ -42,10 +66,12 @@ export BARBAROSSA_CODEX_AUTH_FILE="${BARBAROSSA_CODEX_AUTH_FILE:-$runtime/codex_
 export BARBAROSSA_GITHUB_TOKEN_FILE="${BARBAROSSA_GITHUB_TOKEN_FILE:-$runtime/github_token}"
 export BARBAROSSA_ROUTER_BUNDLE="$runtime/barbarossa-router.pex"
 export BARBAROSSA_IMAGE_TAG="${BARBAROSSA_IMAGE_TAG:-local}"
+cat > "$runtime/compose.env" <<EOF
+BARBAROSSA_IMAGE_TAG=$BARBAROSSA_IMAGE_TAG
+BARBAROSSA_RUNTIME_DIR=$runtime
+EOF
+chmod 0600 "$runtime/compose.env"
 
-if [ -n "${CODEX_ACCESS_TOKEN:-}" ]; then
-  printf '%s' "$CODEX_ACCESS_TOKEN" > "$BARBAROSSA_CODEX_TOKEN_FILE"
-fi
 touch "$BARBAROSSA_CODEX_TOKEN_FILE"
 if [ ! -s "$BARBAROSSA_CODEX_TOKEN_FILE" ] &&
   [ ! -s "$BARBAROSSA_CODEX_AUTH_FILE" ] &&
@@ -59,7 +85,7 @@ if [ ! -s "$BARBAROSSA_CODEX_TOKEN_FILE" ] &&
   exit 1
 fi
 touch "$BARBAROSSA_CODEX_AUTH_FILE" "$BARBAROSSA_GITHUB_TOKEN_FILE"
-chmod 0644 "$BARBAROSSA_CODEX_TOKEN_FILE" \
+chmod 0600 "$BARBAROSSA_CODEX_TOKEN_FILE" \
   "$BARBAROSSA_CODEX_AUTH_FILE" \
   "$BARBAROSSA_GITHUB_TOKEN_FILE"
 
@@ -73,8 +99,8 @@ printf 'restrict,command="/usr/local/bin/worker-ssh-dispatch" %s\n' \
   "$(cat "$BARBAROSSA_WORKER_SSH_KEY_FILE.pub")" \
   > "$BARBAROSSA_AUTHORIZED_KEYS_FILE"
 touch "$BARBAROSSA_KNOWN_HOSTS_FILE"
-chmod 0644 "$BARBAROSSA_WORKER_SSH_KEY_FILE" \
-  "$BARBAROSSA_AUTHORIZED_KEYS_FILE" \
+chmod 0600 "$BARBAROSSA_WORKER_SSH_KEY_FILE"
+chmod 0644 "$BARBAROSSA_AUTHORIZED_KEYS_FILE" \
   "$BARBAROSSA_KNOWN_HOSTS_FILE"
 
 (
@@ -92,21 +118,25 @@ chmod 0644 "$BARBAROSSA_WORKER_SSH_KEY_FILE" \
 )
 chmod 0555 "$BARBAROSSA_ROUTER_BUNDLE"
 
-docker compose down --remove-orphans
-docker compose build forge recon
-docker compose up -d --remove-orphans --force-recreate \
+compose() {
+  scripts/compose.sh "$@"
+}
+
+compose down --remove-orphans
+compose build forge recon
+compose up -d --remove-orphans --force-recreate \
   --wait --wait-timeout 300 forge recon
 
 {
   printf 'forge %s\n' \
-    "$(docker compose exec -T forge \
+    "$(compose exec -T forge \
       cat /ssh-host-keys/ssh_host_ed25519_key.pub)"
   printf 'recon %s\n' \
-    "$(docker compose exec -T recon \
+    "$(compose exec -T recon \
       cat /ssh-host-keys/ssh_host_ed25519_key.pub)"
 } > "$BARBAROSSA_KNOWN_HOSTS_FILE"
 chmod 0644 "$BARBAROSSA_KNOWN_HOSTS_FILE"
 
-docker compose up -d --remove-orphans --force-recreate \
+compose up -d --remove-orphans --force-recreate \
   --wait --wait-timeout 300 hermes
 BARBAROSSA_RUNTIME_DIR="$runtime" scripts/smoke-remote.sh

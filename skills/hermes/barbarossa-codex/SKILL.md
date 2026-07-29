@@ -22,6 +22,6 @@ Forge tool. Pass only staged absolute paths to the router.
   `job_result` after a terminal job status, then summarize the returned
   artifact metadata or content.
 
-Forge runs Codex GPT-5.6 Luna at medium reasoning. Codex may use one internal
-subagent when useful. Promote valuable source or artifacts to a private Git
-repository manually; worker state remains disposable.
+Forge receives its Codex model, reasoning effort, and internal subagent limit
+from the deployment profile. Promote valuable source or artifacts to a private
+Git repository manually; worker state remains disposable.

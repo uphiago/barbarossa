@@ -23,9 +23,9 @@ assert all(
     "no-new-privileges:true" in service["security_opt"]
     for service in services.values()
 )
-assert services["forge"]["mem_limit"] == "1408m"
-assert services["recon"]["mem_limit"] == "640m"
-assert services["hermes"]["mem_limit"] == "1024m"
+assert services["forge"]["mem_limit"] == "${BARBAROSSA_FORGE_MEMORY:-1408m}"
+assert services["recon"]["mem_limit"] == "${BARBAROSSA_RECON_MEMORY:-640m}"
+assert services["hermes"]["mem_limit"] == "${BARBAROSSA_HERMES_MEMORY:-1024m}"
 assert "/opt/barbarossa/gateway_entrypoint.py" in " ".join(
     services["hermes"]["command"]
 )
@@ -42,7 +42,10 @@ assert "ports" not in services["forge"]
 assert "ports" not in services["recon"]
 assert services["forge"]["read_only"] is True
 assert services["recon"]["read_only"] is True
-assert "env_file" not in services["hermes"]
+assert services["hermes"]["env_file"] == [
+    "${BARBAROSSA_HERMES_ENV_FILE:?set BARBAROSSA_HERMES_ENV_FILE}"
+]
+assert "DEEPSEEK_API_KEY" not in services["hermes"]["environment"]
 assert all(
     "/var/run/docker.sock" not in str(service)
     for service in services.values()
@@ -110,14 +113,20 @@ for line in workflow_text.splitlines():
 PY
 
 grep -Fq 'supports_parallel_tool_calls": True' config/hermes/configure.py
-grep -Fq '"max_concurrent_children": 3' config/hermes/configure.py
-grep -Fq '"max_spawn_depth": 1' config/hermes/configure.py
-grep -Fq '"orchestrator_enabled": True' config/hermes/configure.py
+grep -Fq 'HERMES_MAX_CONCURRENT_CHILDREN' config/hermes/configure.py
+grep -Fq 'HERMES_MAX_SPAWN_DEPTH' config/hermes/configure.py
+grep -Fq 'HERMES_ORCHESTRATOR_ENABLED' config/hermes/configure.py
 grep -Fq '"image_input_mode": "text"' config/hermes/configure.py
 grep -Fq '"vision"' config/hermes/configure.py
-grep -Fq '"name": "deepseek-v4-flash"' config/hermes/configure.py
-grep -Fq '"base_url": "https://api.deepseek.com/v1"' \
-  config/hermes/configure.py
+if grep -Fq 'deepseek-v4-flash' config/hermes/configure.py; then
+  printf 'Hermes configurator still pins the reference model\n' >&2
+  exit 1
+fi
+if grep -Eq 'gpt-5\.6|luna|model_reasoning_effort' \
+  config/codex/config.toml; then
+  printf 'base Codex config still pins a deployment profile\n' >&2
+  exit 1
+fi
 grep -Fq 'BARBAROSSA_SSH_KEY' config/hermes/configure.py
 grep -Fq 'BARBAROSSA_KNOWN_HOSTS' config/hermes/configure.py
 grep -Fq 'BARBAROSSA_STATE_DB' config/hermes/configure.py
@@ -147,6 +156,8 @@ grep -Fq 'router/dist/' .gitignore
 grep -Fq '.runtime/' .gitignore
 grep -Fq '.env*' .dockerignore
 grep -Fq '!.env.example' .dockerignore
+grep -Fq 'hermes.env' .gitignore
+grep -Fq '!hermes.env.example' .dockerignore
 grep -Fq 'router/.venv/' .dockerignore
 grep -Fq 'export BARBAROSSA_GITHUB_TOKEN_FILE=' setup.sh
 grep -Fq \
@@ -154,11 +165,27 @@ grep -Fq \
   setup.sh
 grep -Fq '"$BARBAROSSA_GITHUB_TOKEN_FILE"' setup.sh
 grep -Fq 'ssh-keygen -q -t ed25519' scripts/deploy-runtime-files.sh
+grep -Fq 'chmod 0600 "$worker_key" "$codex_token" "$codex_auth"' \
+  scripts/deploy-runtime-files.sh
 grep -Fq 'restrict,command="/usr/local/bin/worker-ssh-dispatch"' \
   scripts/deploy-runtime-files.sh
-grep -Fq 'BARBAROSSA_GITHUB_TOKEN_FILE' scripts/deploy-runtime-files.sh
+grep -Fq 'BARBAROSSA_RUNTIME_DIR=$runtime' scripts/deploy-runtime-files.sh
+grep -Fq 'scripts/compose.sh' setup.sh
+grep -Fq 'scripts/compose.sh' scripts/smoke-remote.sh
+grep -Fq 'runtime_override=' scripts/compose.sh
+if grep -Fq '. "$hermes_env"' setup.sh; then
+  printf 'setup executes hermes.env as shell code\n' >&2
+  exit 1
+fi
 grep -Fq 'docker compose' .github/workflows/build-deploy.yml
+if grep -Fq 'DEEPSEEK_API_KEY=validate' \
+  .github/workflows/build-deploy.yml; then
+  printf 'CI still requires the reference provider\n' >&2
+  exit 1
+fi
 grep -Fq 'mcp test barbarossa' scripts/smoke-remote.sh
+grep -Fq 'secret value from {name} found in container logs' \
+  scripts/smoke-remote.sh
 grep -Fq 'available but untested' skills/hermes/barbarossa-routing/SKILL.md
 grep -Fq 'Do not use `skill_manage`' skills/hermes/barbarossa-routing/SKILL.md
 grep -Fq 'Do not read artifacts directly' skills/hermes/barbarossa-codex/SKILL.md

@@ -47,7 +47,7 @@ def create_server(service: RouterService) -> MCPServer:
         input_paths: list[str] | None = None,
         timeout_seconds: int = 2700,
     ) -> JobStatus:
-        """Queue a Codex GPT-5.6 Luna medium engineering job in Forge."""
+        """Queue an engineering job for the configured Codex profile."""
         return await service.submit(
             JobRequest(
                 capability="code.delegate",

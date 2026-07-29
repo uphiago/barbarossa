@@ -50,19 +50,13 @@ jobs:
             "$runtime/known_hosts" "$runtime/codex_access_token" \
             "$runtime/codex_auth.json" "$runtime/github_token" \
             "$runtime/router.pex"
-          DEEPSEEK_API_KEY=validate \
-          TELEGRAM_BOT_TOKEN=validate \
-          DASHBOARD_USER=validate \
-          DASHBOARD_PASS=validate \
-          DASHBOARD_SECRET=validate \
-          BARBAROSSA_WORKER_SSH_KEY_FILE="$runtime/key" \
-          BARBAROSSA_AUTHORIZED_KEYS_FILE="$runtime/authorized_keys" \
-          BARBAROSSA_KNOWN_HOSTS_FILE="$runtime/known_hosts" \
+          cp hermes.env.example "$runtime/hermes.env"
+          BARBAROSSA_RUNTIME_DIR="$runtime" \
+          BARBAROSSA_HERMES_ENV_FILE="$runtime/hermes.env" \
           BARBAROSSA_CODEX_TOKEN_FILE="$runtime/codex_access_token" \
           BARBAROSSA_CODEX_AUTH_FILE="$runtime/codex_auth.json" \
           BARBAROSSA_GITHUB_TOKEN_FILE="$runtime/github_token" \
-          BARBAROSSA_ROUTER_BUNDLE="$runtime/router.pex" \
-            docker compose config --quiet
+            docker compose --env-file .env.example config --quiet
   build-router:
     needs: validate
     if: >-
@@ -176,7 +170,7 @@ jobs:
           remote="${OVH_USER}@${OVH_HOST}"
           ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
             "$remote" \
-            'install -d -m 0750 "$HOME/barbarossa"; sudo -n find "$HOME/barbarossa" -mindepth 1 -maxdepth 1 ! -name .env -exec rm -rf -- {} +; sudo -n chown "$(id -u):$(id -g)" "$HOME/barbarossa"'
+            'install -d -m 0750 "$HOME/barbarossa"; sudo -n find "$HOME/barbarossa" -mindepth 1 -maxdepth 1 ! -name .env ! -name hermes.env -exec rm -rf -- {} +; sudo -n chown "$(id -u):$(id -g)" "$HOME/barbarossa"'
           git archive "${GITHUB_SHA}" |
             ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
               "$remote" 'tar -x -C "$HOME/barbarossa"'

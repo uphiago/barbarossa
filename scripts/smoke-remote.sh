@@ -3,19 +3,9 @@ set -euo pipefail
 
 root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 runtime="${BARBAROSSA_RUNTIME_DIR:-$HOME/.config/barbarossa/runtime}"
-docker="${DOCKER:-docker}"
 
 compose() {
-  if [ -f "$runtime/compose.env" ]; then
-    "$docker" compose \
-      --env-file "$root/.env" \
-      --env-file "$runtime/compose.env" \
-      -f "$root/docker-compose.yml" "$@"
-  else
-    "$docker" compose \
-      --env-file "$root/.env" \
-      -f "$root/docker-compose.yml" "$@"
-  fi
+  BARBAROSSA_RUNTIME_DIR="$runtime" "$root/scripts/compose.sh" "$@"
 }
 
 diff -u \
@@ -98,7 +88,7 @@ for service in forge recon; do
   compose exec -T "$service" test ! -S /var/run/docker.sock
 done
 
-networks="$(compose ps -q | xargs "$docker" inspect \
+networks="$(compose ps -q | xargs "${DOCKER:-docker}" inspect \
   --format '{{.Name}} {{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}')"
 printf '%s\n' "$networks" | grep -F 'forge'
 printf '%s\n' "$networks" | grep -F 'recon'
@@ -110,11 +100,61 @@ if printf '%s\n' "$networks" | awk \
   exit 1
 fi
 
-logs="$(compose logs --since 15m --no-color hermes forge recon)"
-if printf '%s' "$logs" | grep -E \
-  'CODEX_ACCESS_TOKEN|DEEPSEEK_API_KEY|BEGIN OPENSSH PRIVATE KEY'; then
-  printf 'secret marker found in container logs\n' >&2
-  exit 1
-fi
+evidence="$(mktemp -d)"
+trap 'rm -rf "$evidence"' EXIT HUP INT TERM
+chmod 0700 "$evidence"
+compose config --format json > "$evidence/compose.json"
+compose logs --since 15m --no-color hermes forge recon \
+  > "$evidence/services.log"
+chmod 0600 "$evidence/compose.json" "$evidence/services.log"
+python3 - "$evidence/compose.json" "$evidence/services.log" "$runtime" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+config = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+logs = Path(sys.argv[2]).read_text(encoding="utf-8", errors="replace")
+runtime = Path(sys.argv[3])
+secret_name = re.compile(
+    r"(?:API_KEY|TOKEN|PASSWORD|SECRET)",
+    re.IGNORECASE,
+)
+candidates: list[tuple[str, str]] = []
+
+for service in config["services"].values():
+    for name, value in service.get("environment", {}).items():
+        if secret_name.search(name) and isinstance(value, str):
+            candidates.append((name, value))
+
+for name in ("codex_access_token", "github_token"):
+    path = runtime / name
+    if path.is_file():
+        candidates.append((name, path.read_text(encoding="utf-8").strip()))
+
+auth_path = runtime / "codex_auth.json"
+if auth_path.is_file() and auth_path.stat().st_size:
+    def strings(value):
+        if isinstance(value, str):
+            yield value
+        elif isinstance(value, dict):
+            for child in value.values():
+                yield from strings(child)
+        elif isinstance(value, list):
+            for child in value:
+                yield from strings(child)
+
+    for value in strings(json.loads(auth_path.read_text(encoding="utf-8"))):
+        candidates.append(("codex_auth", value))
+
+for name, value in candidates:
+    if len(value) >= 8 and value in logs:
+        raise SystemExit(f"secret value from {name} found in container logs")
+
+if "BEGIN OPENSSH PRIVATE KEY" in logs:
+    raise SystemExit("private key marker found in container logs")
+PY
+rm -rf "$evidence"
+trap - EXIT HUP INT TERM
 
 printf 'barbarossa remote smoke checks passed\n'

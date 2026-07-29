@@ -69,7 +69,7 @@ architectural limit:
 
 | Component | Checked-in configuration |
 | --- | --- |
-| Hermes | DeepSeek V4 Flash through the native API |
+| Hermes main model | DeepSeek V4 Flash through the native API |
 | Hermes delegation | Up to three child tasks, one level deep |
 | Forge runtime lane | One non-root shell, file, build, and conversion job |
 | Forge Codex lane | Codex GPT-5.6 Luna, medium reasoning |
@@ -77,9 +77,51 @@ architectural limit:
 | Recon lane | One authorized network job, direct or explicit Tor |
 
 Forge runtime and Forge Codex can run concurrently. Hermes may also parallelize
-independent orchestration across Forge and Recon. Different providers, models,
-worker services, and limits can be selected by changing the corresponding
-Hermes, Codex, Compose, router, and test configuration.
+independent orchestration across Forge and Recon. DeepSeek and Luna are example
+defaults, not implementation requirements. Providers, models, reasoning,
+delegation, service resources, and credentials are selected through the
+deployment environment without changing source files.
+
+## Configuration
+
+Barbarossa separates deployment settings from Hermes process settings:
+
+| File | Owner | Contents |
+| --- | --- | --- |
+| `.env` | Barbarossa | Runtime path, image tag, dashboard bind, resources, Codex profile, external credential paths |
+| `hermes.env` | Hermes | Main provider/model, delegation, provider credentials, Telegram, Tool Gateway, dashboard authentication |
+| `.runtime/compose.env` | Setup/deploy | Generated absolute runtime path and effective immutable image tag |
+
+Both `.env` and `hermes.env` are required and ignored by Git. Only
+`.env.example` and `hermes.env.example` are public. The complete
+`hermes.env` is injected only into the Hermes service; Forge and Recon receive
+explicit allowlisted values from Compose.
+
+The default profile uses:
+
+```dotenv
+# hermes.env
+HERMES_MODEL_PROVIDER=deepseek
+HERMES_MODEL_NAME=deepseek-v4-flash
+DEEPSEEK_API_KEY=...
+```
+
+Changing providers does not require a code change:
+
+```dotenv
+# hermes.env
+HERMES_MODEL_PROVIDER=openrouter
+HERMES_MODEL_NAME=anthropic/claude-sonnet-4.6
+OPENROUTER_API_KEY=...
+```
+
+Provider credentials retain their native Hermes names because authentication
+can be an API key, OAuth state, a cloud SDK chain, or a custom endpoint.
+Hermes OAuth state remains in its private `auth.json`.
+
+When `HERMES_DELEGATION_PROVIDER` and `HERMES_DELEGATION_MODEL` are empty,
+child agents inherit the main model. Set them only when delegation should use a
+different provider or model.
 
 ## Capabilities
 
@@ -129,7 +171,7 @@ Requirements:
 - Docker with Compose
 - `uv`
 - Python 3
-- credentials for the model selected by the checked-in Hermes profile
+- credentials or OAuth state for the selected Hermes provider
 - Telegram bot token
 - dashboard credentials
 - Codex access token or headless `auth.json`
@@ -140,10 +182,12 @@ Clone and prepare the repository:
 git clone https://github.com/uphiago/barbarossa.git
 cd barbarossa
 cp .env.example .env
+cp hermes.env.example hermes.env
 ```
 
-For the checked-in profile, add the DeepSeek, Telegram, and dashboard values to
-`.env`. Keep Codex authentication in the external file configured by
+Configure Docker resources, Codex, and external file paths in `.env`. Configure
+the Hermes provider, native provider credentials, Telegram, and dashboard
+authentication in `hermes.env`. Keep Codex authentication in the external file configured by
 `BARBAROSSA_CODEX_TOKEN_FILE` or `BARBAROSSA_CODEX_AUTH_FILE`.
 
 GitHub access from Codex is optional. Place a scoped credential in the file
@@ -168,6 +212,15 @@ The setup:
 
 It never disables SSH host checking or copies the private worker-control key
 into a worker.
+
+Use the packaged Compose wrapper for later operations so the generated image
+tag and runtime directory are always applied:
+
+```bash
+scripts/compose.sh ps
+scripts/compose.sh logs --since 15m hermes
+scripts/compose.sh up -d
+```
 
 ## Telegram Authorization
 
