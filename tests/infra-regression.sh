@@ -143,6 +143,11 @@ grep -Fq '.runtime/' .gitignore
 grep -Fq '.env*' .dockerignore
 grep -Fq '!.env.example' .dockerignore
 grep -Fq 'router/.venv/' .dockerignore
+grep -Fq 'export BARBAROSSA_GITHUB_TOKEN_FILE=' setup.sh
+grep -Fq \
+  'touch "$BARBAROSSA_CODEX_AUTH_FILE" "$BARBAROSSA_GITHUB_TOKEN_FILE"' \
+  setup.sh
+grep -Fq '"$BARBAROSSA_GITHUB_TOKEN_FILE"' setup.sh
 grep -Fq 'ssh-keygen -q -t ed25519' scripts/deploy-runtime-files.sh
 grep -Fq 'restrict,command="/usr/local/bin/worker-ssh-dispatch"' \
   scripts/deploy-runtime-files.sh

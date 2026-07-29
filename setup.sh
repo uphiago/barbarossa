@@ -39,6 +39,7 @@ export BARBAROSSA_AUTHORIZED_KEYS_FILE="$runtime/authorized_keys"
 export BARBAROSSA_KNOWN_HOSTS_FILE="$runtime/known_hosts"
 export BARBAROSSA_CODEX_TOKEN_FILE="${BARBAROSSA_CODEX_TOKEN_FILE:-$runtime/codex_access_token}"
 export BARBAROSSA_CODEX_AUTH_FILE="${BARBAROSSA_CODEX_AUTH_FILE:-$runtime/codex_auth.json}"
+export BARBAROSSA_GITHUB_TOKEN_FILE="${BARBAROSSA_GITHUB_TOKEN_FILE:-$runtime/github_token}"
 export BARBAROSSA_ROUTER_BUNDLE="$runtime/barbarossa-router.pex"
 export BARBAROSSA_IMAGE_TAG="${BARBAROSSA_IMAGE_TAG:-local}"
 
@@ -57,9 +58,10 @@ if [ ! -s "$BARBAROSSA_CODEX_TOKEN_FILE" ] &&
   printf 'missing Codex access token or auth.json\n' >&2
   exit 1
 fi
-touch "$BARBAROSSA_CODEX_AUTH_FILE"
+touch "$BARBAROSSA_CODEX_AUTH_FILE" "$BARBAROSSA_GITHUB_TOKEN_FILE"
 chmod 0644 "$BARBAROSSA_CODEX_TOKEN_FILE" \
-  "$BARBAROSSA_CODEX_AUTH_FILE"
+  "$BARBAROSSA_CODEX_AUTH_FILE" \
+  "$BARBAROSSA_GITHUB_TOKEN_FILE"
 
 rm -f "$BARBAROSSA_WORKER_SSH_KEY_FILE" \
   "$BARBAROSSA_WORKER_SSH_KEY_FILE.pub" \
