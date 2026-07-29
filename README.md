@@ -97,9 +97,9 @@ Both `.env` and `hermes.env` are required and ignored by Git. Only
 `hermes.env` is injected only into the Hermes service; Forge and Recon receive
 explicit allowlisted values from Compose.
 
-`.env` is read by both Compose and the host bootstrap wrapper. Keep it a
-trusted, POSIX-shell-compatible `KEY=value` file: quote literal values when
-needed, and never place command substitutions or untrusted content in it.
+Keep `.env` to simple configuration assignments such as `NAME=value` and
+paths. Barbarossa reads it on the host before Compose starts, so it is not a
+place for shell commands, command substitutions, or copied untrusted content.
 
 The default profile uses:
 
