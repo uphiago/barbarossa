@@ -61,7 +61,6 @@ umask 077
 export BARBAROSSA_WORKER_SSH_KEY_FILE="$runtime/worker_key"
 export BARBAROSSA_AUTHORIZED_KEYS_FILE="$runtime/authorized_keys"
 export BARBAROSSA_KNOWN_HOSTS_FILE="$runtime/known_hosts"
-export BARBAROSSA_CODEX_TOKEN_FILE="${BARBAROSSA_CODEX_TOKEN_FILE:-$runtime/codex_access_token}"
 export BARBAROSSA_CODEX_AUTH_FILE="${BARBAROSSA_CODEX_AUTH_FILE:-$runtime/codex_auth.json}"
 export BARBAROSSA_GITHUB_TOKEN_FILE="${BARBAROSSA_GITHUB_TOKEN_FILE:-$runtime/github_token}"
 export BARBAROSSA_ROUTER_BUNDLE="$runtime/barbarossa-router.pex"
@@ -72,21 +71,17 @@ BARBAROSSA_RUNTIME_DIR=$runtime
 EOF
 chmod 0600 "$runtime/compose.env"
 
-touch "$BARBAROSSA_CODEX_TOKEN_FILE"
-if [ ! -s "$BARBAROSSA_CODEX_TOKEN_FILE" ] &&
-  [ ! -s "$BARBAROSSA_CODEX_AUTH_FILE" ] &&
+if [ ! -s "$BARBAROSSA_CODEX_AUTH_FILE" ] &&
   [ -s "$HOME/.codex/auth.json" ]; then
   install -m 0644 "$HOME/.codex/auth.json" \
     "$BARBAROSSA_CODEX_AUTH_FILE"
 fi
-if [ ! -s "$BARBAROSSA_CODEX_TOKEN_FILE" ] &&
-  [ ! -s "$BARBAROSSA_CODEX_AUTH_FILE" ]; then
-  printf 'missing Codex access token or auth.json\n' >&2
+if [ ! -s "$BARBAROSSA_CODEX_AUTH_FILE" ]; then
+  printf 'missing Codex auth.json\n' >&2
   exit 1
 fi
 touch "$BARBAROSSA_CODEX_AUTH_FILE" "$BARBAROSSA_GITHUB_TOKEN_FILE"
-chmod 0600 "$BARBAROSSA_CODEX_TOKEN_FILE" \
-  "$BARBAROSSA_CODEX_AUTH_FILE" \
+chmod 0600 "$BARBAROSSA_CODEX_AUTH_FILE" \
   "$BARBAROSSA_GITHUB_TOKEN_FILE"
 
 rm -f "$BARBAROSSA_WORKER_SSH_KEY_FILE" \

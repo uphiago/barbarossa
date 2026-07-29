@@ -54,7 +54,6 @@ jobs:
           cp hermes.env.example "$runtime/hermes.env"
           BARBAROSSA_RUNTIME_DIR="$runtime" \
           BARBAROSSA_HERMES_ENV_FILE="$runtime/hermes.env" \
-          BARBAROSSA_CODEX_TOKEN_FILE="$runtime/codex_access_token" \
           BARBAROSSA_CODEX_AUTH_FILE="$runtime/codex_auth.json" \
           BARBAROSSA_GITHUB_TOKEN_FILE="$runtime/github_token" \
             docker compose --env-file .env.example config --quiet

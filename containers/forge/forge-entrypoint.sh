@@ -13,7 +13,7 @@ install -o forge -g forge -m 0600 \
   /home/forge/.codex/skills/barbarossa-artifacts/SKILL.md
 
 install -d -o forge -g forge -m 0700 /run/barbarossa-secrets
-for secret in codex_access_token github_token; do
+for secret in github_token; do
   source="/run/secrets/$secret"
   if [ -s "$source" ]; then
     install -o forge -g forge -m 0600 \
@@ -31,14 +31,12 @@ if [ -s "$auth_source" ]; then
     "$auth_source" "$auth_target"
 fi
 
-codex_token_file="${CODEX_ACCESS_TOKEN_FILE:-/run/barbarossa-secrets/codex_access_token}"
 github_token_file="${GH_TOKEN_FILE:-/run/barbarossa-secrets/github_token}"
 codex_model="${BARBAROSSA_CODEX_MODEL:?BARBAROSSA_CODEX_MODEL is required}"
 codex_reasoning="${BARBAROSSA_CODEX_REASONING_EFFORT:?BARBAROSSA_CODEX_REASONING_EFFORT is required}"
 codex_subagents="${BARBAROSSA_CODEX_MAX_SUBAGENTS:?BARBAROSSA_CODEX_MAX_SUBAGENTS is required}"
 
 for value in \
-  "$codex_token_file" \
   "$auth_target" \
   "$github_token_file" \
   "$codex_model" \
@@ -53,7 +51,6 @@ for value in \
 done
 
 session_environment="SetEnv=\
-CODEX_ACCESS_TOKEN_FILE=$codex_token_file \
 CODEX_AUTH_JSON_FILE=$auth_target \
 GH_TOKEN_FILE=$github_token_file \
 BARBAROSSA_CODEX_MODEL=$codex_model \

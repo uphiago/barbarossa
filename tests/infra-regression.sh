@@ -68,7 +68,6 @@ assert set(secrets) == {
     "worker_private_key",
     "worker_authorized_keys",
     "worker_known_hosts",
-    "codex_access_token",
     "codex_auth_json",
     "github_token",
 }
@@ -77,12 +76,9 @@ forge_secrets = {
     for secret in services["forge"]["secrets"]
     if isinstance(secret, dict)
 }
-for name in ("codex_access_token", "codex_auth_json", "github_token"):
+for name in ("codex_auth_json", "github_token"):
     assert forge_secrets[name]["target"] == name
 forge_environment = services["forge"]["environment"]
-assert forge_environment["CODEX_ACCESS_TOKEN_FILE"] == (
-    "/run/barbarossa-secrets/codex_access_token"
-)
 assert forge_environment["GH_TOKEN_FILE"] == (
     "/run/barbarossa-secrets/github_token"
 )
@@ -187,7 +183,7 @@ grep -Fq \
   setup.sh
 grep -Fq '"$BARBAROSSA_GITHUB_TOKEN_FILE"' setup.sh
 grep -Fq 'ssh-keygen -q -t ed25519' scripts/deploy-runtime-files.sh
-grep -Fq 'chmod 0600 "$worker_key" "$codex_token" "$codex_auth"' \
+grep -Fq 'chmod 0600 "$worker_key" "$codex_auth" "$github_token"' \
   scripts/deploy-runtime-files.sh
 grep -Fq 'restrict,command="/usr/local/bin/worker-ssh-dispatch"' \
   scripts/deploy-runtime-files.sh

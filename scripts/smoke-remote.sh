@@ -127,7 +127,7 @@ for service in config["services"].values():
         if secret_name.search(name) and isinstance(value, str):
             candidates.append((name, value))
 
-for name in ("codex_access_token", "github_token"):
+for name in ("github_token",):
     path = runtime / name
     if path.is_file():
         candidates.append((name, path.read_text(encoding="utf-8").strip()))

@@ -30,7 +30,6 @@ services:
       WORKER_HOME: /home/forge
       WORKSPACE_ROOT: /workspace
       CODEX_HOME: /home/forge/.codex
-      CODEX_ACCESS_TOKEN_FILE: /run/barbarossa-secrets/codex_access_token
       CODEX_AUTH_JSON_FILE: /home/forge/.codex/auth.json
       GH_TOKEN_FILE: /run/barbarossa-secrets/github_token
       BARBAROSSA_CODEX_MODEL: ${BARBAROSSA_CODEX_MODEL:-gpt-5.6-luna}
@@ -39,8 +38,6 @@ services:
     secrets:
       - source: worker_authorized_keys
         target: worker_authorized_keys
-      - source: codex_access_token
-        target: codex_access_token
       - source: codex_auth_json
         target: codex_auth_json
       - source: github_token
@@ -198,8 +195,6 @@ secrets:
     file: ${BARBAROSSA_RUNTIME_DIR:-.runtime}/authorized_keys
   worker_known_hosts:
     file: ${BARBAROSSA_RUNTIME_DIR:-.runtime}/known_hosts
-  codex_access_token:
-    file: ${BARBAROSSA_CODEX_TOKEN_FILE:-${BARBAROSSA_RUNTIME_DIR:-.runtime}/codex_access_token}
   codex_auth_json:
     file: ${BARBAROSSA_CODEX_AUTH_FILE:-${BARBAROSSA_RUNTIME_DIR:-.runtime}/codex_auth.json}
   github_token:
