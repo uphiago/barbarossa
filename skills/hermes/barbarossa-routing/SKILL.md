@@ -18,9 +18,9 @@ combines results; it does not perform heavy execution in its own container.
 - Use `job_logs` for progress, but never infer success from an empty log.
 - Use `job_result` only after a terminal status.
 
-Hermes may run up to three independent child agents in parallel. Parallelize
-independent Forge runtime, Forge Codex, and Recon work; keep dependent work
-sequential.
+Hermes may run independent child agents up to the configured delegation limit.
+Parallelize independent Forge runtime, Forge Codex, and Recon work; keep
+dependent work sequential.
 
 ## Controlled Capability Audits
 
