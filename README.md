@@ -1,7 +1,5 @@
 # Barbarossa
 
-![Barbarossa, the agent runtime](docs/assets/barbarossa-epic-16x9.png)
-
 Barbarossa is a portable, capability-oriented agent runtime. It connects an
 orchestrator to isolated workers through typed tools and durable jobs:
 
@@ -395,3 +393,5 @@ forwarding restrictions, and cloud metadata filtering.
 Barbarossa is distributed under the [MIT License](LICENSE). Use network and
 security capabilities only on systems you own or are explicitly authorized to
 test.
+
+![Barbarossa, the agent runtime](docs/assets/barbarossa-epic-16x9.png)
