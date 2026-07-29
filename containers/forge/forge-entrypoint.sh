@@ -12,6 +12,15 @@ install -o forge -g forge -m 0600 \
   /usr/local/share/barbarossa/codex/SKILL.md \
   /home/forge/.codex/skills/barbarossa-artifacts/SKILL.md
 
+install -d -o forge -g forge -m 0700 /run/barbarossa-secrets
+for secret in codex_access_token github_token; do
+  source="/run/secrets/$secret"
+  if [ -s "$source" ]; then
+    install -o forge -g forge -m 0600 \
+      "$source" "/run/barbarossa-secrets/$secret"
+  fi
+done
+
 auth_source="${CODEX_AUTH_JSON_FILE:-/run/secrets/codex_auth_json}"
 if [ -s "$auth_source" ]; then
   python3 -c \

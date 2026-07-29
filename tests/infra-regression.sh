@@ -69,9 +69,13 @@ forge_secrets = {
 }
 for name in ("codex_access_token", "codex_auth_json", "github_token"):
     assert forge_secrets[name]["target"] == name
-    assert forge_secrets[name]["uid"] == "10001"
-    assert forge_secrets[name]["gid"] == "10001"
-    assert forge_secrets[name]["mode"] == 0o400
+forge_environment = services["forge"]["environment"]
+assert forge_environment["CODEX_ACCESS_TOKEN_FILE"] == (
+    "/run/barbarossa-secrets/codex_access_token"
+)
+assert forge_environment["GH_TOKEN_FILE"] == (
+    "/run/barbarossa-secrets/github_token"
+)
 
 workflow_path = Path(".github/workflows/build-deploy.yml")
 workflow = yaml.safe_load(workflow_path.read_text())
@@ -130,6 +134,10 @@ for forbidden in \
 done
 
 grep -Fq 'router/.venv/' .gitignore
+grep -Fq 'install -d -o forge -g forge -m 0700 /run/barbarossa-secrets' \
+  containers/forge/forge-entrypoint.sh
+grep -Fq '"/run/barbarossa-secrets/$secret"' \
+  containers/forge/forge-entrypoint.sh
 grep -Fq 'router/dist/' .gitignore
 grep -Fq '.runtime/' .gitignore
 grep -Fq '.env*' .dockerignore
