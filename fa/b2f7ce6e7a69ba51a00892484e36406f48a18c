@@ -1,0 +1,19 @@
+docs/superpowers/plans/2026-07-29-readme-configurable-runtime.md
+  s_070c9332e1ca94::t_322ef62b6336d5 1-204
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "fab2f7ce6e7a69ba51a00892484e36406f48a18c",
+  "prompts": {},
+  "sessions": {
+    "s_070c9332e1ca94": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "be19f4b0-e38b-441b-9f19-4f38dbf85820",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
