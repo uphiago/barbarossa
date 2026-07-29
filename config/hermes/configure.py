@@ -137,8 +137,12 @@ def desired_config() -> dict[str, Any]:
                 "connect_timeout": 15,
                 "timeout": 30,
                 "env": {
-                    "BARBAROSSA_SSH_KEY": "/run/secrets/worker_key",
-                    "BARBAROSSA_KNOWN_HOSTS": "/run/secrets/known_hosts",
+                    "BARBAROSSA_SSH_KEY": (
+                        "/run/barbarossa-secrets/worker_key"
+                    ),
+                    "BARBAROSSA_KNOWN_HOSTS": (
+                        "/run/barbarossa-secrets/known_hosts"
+                    ),
                     "BARBAROSSA_STATE_DB": "/opt/data/router/jobs.sqlite3",
                     "BARBAROSSA_INPUT_ROOT": (
                         "/opt/data/barbarossa-transfer"

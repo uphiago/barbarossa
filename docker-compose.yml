@@ -137,8 +137,8 @@ services:
     environment:
       TZ: ${BARBAROSSA_TIMEZONE:-UTC}
       HERMES_DASHBOARD: "1"
-      BARBAROSSA_SSH_KEY: /run/secrets/worker_key
-      BARBAROSSA_KNOWN_HOSTS: /run/secrets/known_hosts
+      BARBAROSSA_SSH_KEY: /run/barbarossa-secrets/worker_key
+      BARBAROSSA_KNOWN_HOSTS: /run/barbarossa-secrets/known_hosts
       BARBAROSSA_STATE_DB: /opt/data/router/jobs.sqlite3
       BARBAROSSA_INPUT_ROOT: /opt/data/barbarossa-transfer
       BARBAROSSA_RESULT_ROOT: /opt/data/barbarossa-results
@@ -155,6 +155,7 @@ services:
       - ${BARBAROSSA_RUNTIME_DIR:-.runtime}/barbarossa-router.pex:/opt/barbarossa-router/barbarossa-router.pex:ro
       - ./config/hermes/configure.py:/opt/barbarossa/configure.py:ro
       - ./config/hermes/gateway_entrypoint.py:/opt/barbarossa/gateway_entrypoint.py:ro
+      - ./containers/hermes/stage-secrets.sh:/etc/cont-init.d/016-barbarossa-secrets:ro
       - ./AGENTS.md:/opt/barbarossa/context/AGENTS.md:ro
       - ./skills/hermes/barbarossa-routing:/opt/barbarossa/context/skills/barbarossa-routing:ro
       - ./skills/hermes/barbarossa-codex:/opt/barbarossa/context/skills/barbarossa-codex:ro

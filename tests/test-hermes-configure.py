@@ -60,6 +60,9 @@ def test_configure_preserves_unrelated_state_and_is_private(
     assert result["mcp_servers"]["barbarossa"]["env"][
         "BARBAROSSA_FORGE_HOST"
     ] == "forge"
+    assert result["mcp_servers"]["barbarossa"]["env"][
+        "BARBAROSSA_SSH_KEY"
+    ] == "/run/barbarossa-secrets/worker_key"
     assert os.stat(path).st_mode & 0o777 == 0o600
 
 

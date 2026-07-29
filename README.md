@@ -155,6 +155,8 @@ The reference profile applies the following controls:
 - Workers have no published ports and no Docker socket.
 - Forge and Recon do not share a Docker network.
 - Workers accept only restricted job RPC, upload, and download SSH commands.
+- The worker-control key remains `0600` on the host and is staged into
+  Hermes-owned ephemeral runtime storage during container initialization.
 - SSH host checking uses host keys derived from worker-owned key volumes.
 - External content and worker results are treated as untrusted input.
 - Job logs are bounded and redacted before they return to the orchestrator.
