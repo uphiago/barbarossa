@@ -57,7 +57,8 @@ jobs:
           trap 'rm -rf "$runtime"' EXIT
           touch "$runtime/key" "$runtime/authorized_keys" \
             "$runtime/known_hosts" "$runtime/codex_access_token" \
-            "$runtime/codex_auth.json" "$runtime/router.pex"
+            "$runtime/codex_auth.json" "$runtime/github_token" \
+            "$runtime/router.pex"
           DEEPSEEK_API_KEY=validate \
           TELEGRAM_BOT_TOKEN=validate \
           DASHBOARD_USER=validate \
@@ -68,6 +69,7 @@ jobs:
           BARBAROSSA_KNOWN_HOSTS_FILE="$runtime/known_hosts" \
           BARBAROSSA_CODEX_TOKEN_FILE="$runtime/codex_access_token" \
           BARBAROSSA_CODEX_AUTH_FILE="$runtime/codex_auth.json" \
+          BARBAROSSA_GITHUB_TOKEN_FILE="$runtime/github_token" \
           BARBAROSSA_ROUTER_BUNDLE="$runtime/router.pex" \
             docker compose config --quiet
       - name: Scan tracked history for secrets
@@ -202,10 +204,11 @@ jobs:
             ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
               "${OVH_USER}@${OVH_HOST}" \
               'docker login ghcr.io -u uphiago --password-stdin >/dev/null'
-      - name: Install Codex deployment token
+      - name: Install worker credentials
         env:
           CODEX_ACCESS_TOKEN: ${{ secrets.CODEX_ACCESS_TOKEN }}
           CODEX_AUTH_JSON_B64: ${{ secrets.CODEX_AUTH_JSON_B64 }}
+          BARBAROSSA_GITHUB_TOKEN: ${{ secrets.BARBAROSSA_GITHUB_TOKEN }}
           OVH_HOST: ${{ secrets.OVH_HOST }}
           OVH_USER: ${{ secrets.OVH_USER }}
         run: |
@@ -221,6 +224,12 @@ jobs:
               ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
                 "${OVH_USER}@${OVH_HOST}" \
                 'umask 077; install -d -m 0700 "$HOME/.config/barbarossa/runtime"; cat > "$HOME/.config/barbarossa/runtime/codex_auth.json"'
+          fi
+          if [ -n "$BARBAROSSA_GITHUB_TOKEN" ]; then
+            printf '%s' "$BARBAROSSA_GITHUB_TOKEN" |
+              ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
+                "${OVH_USER}@${OVH_HOST}" \
+                'umask 077; install -d -m 0700 "$HOME/.config/barbarossa/runtime"; cat > "$HOME/.config/barbarossa/runtime/github_token"'
           fi
       - name: Cut over and smoke test
         env:

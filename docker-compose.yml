@@ -37,6 +37,8 @@ services:
         target: codex_access_token
       - source: codex_auth_json
         target: codex_auth_json
+      - source: github_token
+        target: github_token
     volumes:
       - forge-workspace:/workspace
       - forge-codex-home:/home/forge/.codex
@@ -128,6 +130,7 @@ services:
     environment:
       TZ: America/Sao_Paulo
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?set DEEPSEEK_API_KEY}
+      TOOL_GATEWAY_USER_TOKEN: ${TOOL_GATEWAY_USER_TOKEN:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?set TELEGRAM_BOT_TOKEN}
       TELEGRAM_ALLOWED_USERS: ${TELEGRAM_ALLOWED_USERS:-}
       HERMES_DASHBOARD: "1"
@@ -197,3 +200,5 @@ secrets:
     file: ${BARBAROSSA_CODEX_TOKEN_FILE:?set BARBAROSSA_CODEX_TOKEN_FILE}
   codex_auth_json:
     file: ${BARBAROSSA_CODEX_AUTH_FILE:?set BARBAROSSA_CODEX_AUTH_FILE}
+  github_token:
+    file: ${BARBAROSSA_GITHUB_TOKEN_FILE:?set BARBAROSSA_GITHUB_TOKEN_FILE}

@@ -60,6 +60,7 @@ assert set(secrets) == {
     "worker_known_hosts",
     "codex_access_token",
     "codex_auth_json",
+    "github_token",
 }
 
 workflow_path = Path(".github/workflows/build-deploy.yml")
@@ -77,6 +78,7 @@ assert "OVH_HOST_KEY" in workflow_text
 assert "StrictHostKeyChecking=yes" in workflow_text
 assert "scripts/deploy-runtime-files.sh" in workflow_text
 assert "scripts/smoke-remote.sh" in workflow_text
+assert "BARBAROSSA_GITHUB_TOKEN" in workflow_text
 for line in workflow_text.splitlines():
     if "uses:" in line:
         reference = line.split("uses:", 1)[1].strip().split()[0]
@@ -124,6 +126,7 @@ grep -Fq 'router/.venv/' .dockerignore
 grep -Fq 'ssh-keygen -q -t ed25519' scripts/deploy-runtime-files.sh
 grep -Fq 'restrict,command="/usr/local/bin/worker-ssh-dispatch"' \
   scripts/deploy-runtime-files.sh
+grep -Fq 'BARBAROSSA_GITHUB_TOKEN_FILE' scripts/deploy-runtime-files.sh
 grep -Fq 'docker compose' .github/workflows/build-deploy.yml
 grep -Fq 'mcp test barbarossa' scripts/smoke-remote.sh
 grep -Fq 'available but untested' skills/hermes/barbarossa-routing/SKILL.md
