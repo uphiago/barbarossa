@@ -290,7 +290,26 @@ general-purpose root shell.
 
 ## Production
 
-The GitHub Actions workflow:
+Every pull request runs validation only. Building images and deploying to the
+configured host require either a version tag matching `v*` or an explicit
+manual workflow dispatch. Ordinary pushes and merges to `main` do not deploy.
+
+Create an annotated release tag from a reviewed `main` commit:
+
+```bash
+git switch main
+git pull --ff-only
+git tag -a v2.0.0 -m "Barbarossa v2.0.0"
+git push origin v2.0.0
+```
+
+For an intentional deployment without creating a release tag:
+
+```bash
+gh workflow run build-deploy.yml --ref main
+```
+
+The release workflow:
 
 - tests the router, worker RPC, Hermes configuration, and infrastructure;
 - validates Docker Compose;
