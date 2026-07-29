@@ -97,6 +97,10 @@ Both `.env` and `hermes.env` are required and ignored by Git. Only
 `hermes.env` is injected only into the Hermes service; Forge and Recon receive
 explicit allowlisted values from Compose.
 
+`.env` is read by both Compose and the host bootstrap wrapper. Keep it a
+trusted, POSIX-shell-compatible `KEY=value` file: quote literal values when
+needed, and never place command substitutions or untrusted content in it.
+
 The default profile uses:
 
 ```dotenv
@@ -235,14 +239,14 @@ Choose one access model before sharing the bot:
 Approve a pairing code from the host running Compose:
 
 ```bash
-docker compose exec --user hermes hermes \
+scripts/compose.sh exec --user hermes hermes \
   /opt/hermes/.venv/bin/hermes pairing approve telegram CODE
 ```
 
 Review approved and pending identities with:
 
 ```bash
-docker compose exec --user hermes hermes \
+scripts/compose.sh exec --user hermes hermes \
   /opt/hermes/.venv/bin/hermes pairing list
 ```
 
