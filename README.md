@@ -25,10 +25,14 @@ implements the capability and job contracts.
 This repository contains one reviewed **reference profile** with three
 containers:
 
-```text
-               Hermes
-              /      \
-   Forge (runtime + Codex)   Recon (direct + Tor)
+```mermaid
+flowchart TD
+    hermes["Hermes<br/>orchestration"]
+    forge["Forge<br/>runtime + Codex"]
+    recon["Recon<br/>direct network + Tor"]
+
+    hermes -->|execution and code capabilities| forge
+    hermes -->|authorized network capabilities| recon
 ```
 
 The typed MCP v2 router runs as a hidden subprocess inside the official Hermes
