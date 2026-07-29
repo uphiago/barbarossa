@@ -191,8 +191,8 @@ cp hermes.env.example hermes.env
 
 Configure Docker resources, Codex, and external file paths in `.env`. Configure
 the Hermes provider, native provider credentials, Telegram, and dashboard
-authentication in `hermes.env`. Keep Codex authentication in the external file configured by
-`BARBAROSSA_CODEX_TOKEN_FILE` or `BARBAROSSA_CODEX_AUTH_FILE`.
+authentication in `hermes.env`. Keep Codex authentication in the external
+`auth.json` file configured by `BARBAROSSA_CODEX_AUTH_FILE`.
 
 GitHub access from Codex is optional. Place a scoped credential in the file
 configured by `BARBAROSSA_GITHUB_TOKEN_FILE` only when a job needs private

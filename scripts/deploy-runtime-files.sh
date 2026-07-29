@@ -12,15 +12,14 @@ umask 077
 worker_key="$runtime/worker_key"
 authorized_keys="$runtime/authorized_keys"
 known_hosts="$runtime/known_hosts"
-codex_token="$runtime/codex_access_token"
 codex_auth="$runtime/codex_auth.json"
 github_token="$runtime/github_token"
 router_bundle="$runtime/barbarossa-router.pex"
 compose_env="$runtime/compose.env"
 
-touch "$codex_token" "$codex_auth" "$github_token"
-if [ ! -s "$codex_token" ] && [ ! -s "$codex_auth" ]; then
-  printf 'missing Codex access token or auth.json in %s\n' "$runtime" >&2
+touch "$codex_auth" "$github_token"
+if [ ! -s "$codex_auth" ]; then
+  printf 'missing Codex auth.json in %s\n' "$runtime" >&2
   exit 1
 fi
 
@@ -28,7 +27,7 @@ rm -f "$worker_key" "$worker_key.pub" "$authorized_keys" "$known_hosts"
 ssh-keygen -q -t ed25519 -N "" -C "hermes@barbarossa" -f "$worker_key"
 printf 'restrict,command="/usr/local/bin/worker-ssh-dispatch" %s\n' \
   "$(cat "$worker_key.pub")" > "$authorized_keys"
-chmod 0600 "$worker_key" "$codex_token" "$codex_auth" "$github_token"
+chmod 0600 "$worker_key" "$codex_auth" "$github_token"
 chmod 0644 "$authorized_keys"
 
 cat > "$compose_env" <<EOF

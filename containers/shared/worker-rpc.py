@@ -166,7 +166,6 @@ def job_environment(capability: str) -> dict[str, str]:
             str(WORKER_HOME / ".codex"),
         )
         for variable, default_path in (
-            ("CODEX_ACCESS_TOKEN", "/run/secrets/codex_access_token"),
             ("GH_TOKEN", "/run/secrets/github_token"),
         ):
             secret_path = readable_secret_path(variable, default_path)
@@ -185,7 +184,6 @@ def job_environment(capability: str) -> dict[str, str]:
 def supervisor_environment() -> dict[str, str]:
     environment = job_environment("runtime.execute")
     for variable in (
-        "CODEX_ACCESS_TOKEN_FILE",
         "CODEX_AUTH_JSON_FILE",
         "GH_TOKEN_FILE",
         "BARBAROSSA_CODEX_MODEL",
@@ -587,7 +585,6 @@ def redact(data: bytes) -> bytes:
         if len(value) >= 4
     ]
     for variable, default_path in (
-        ("CODEX_ACCESS_TOKEN", "/run/secrets/codex_access_token"),
         ("GH_TOKEN", "/run/secrets/github_token"),
     ):
         secret_path = readable_secret_path(variable, default_path)

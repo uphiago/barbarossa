@@ -60,39 +60,20 @@ def test_supervisor_environment_preserves_only_file_backed_codex_profile(
     assert "CODEX_ACCESS_TOKEN" not in env
 
 
-def test_codex_environment_reads_only_scoped_secrets(
+def test_codex_environment_reads_only_scoped_github_secret(
     worker_rpc: ModuleType,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    codex_secret = tmp_path / "codex"
     github_secret = tmp_path / "github"
-    codex_secret.write_text("codex-token\n", encoding="utf-8")
     github_secret.write_text("github-token\n", encoding="utf-8")
-    monkeypatch.setenv("CODEX_ACCESS_TOKEN_FILE", str(codex_secret))
     monkeypatch.setenv("GH_TOKEN_FILE", str(github_secret))
 
     codex_env = worker_rpc.job_environment("code.delegate")
     runtime_env = worker_rpc.job_environment("runtime.execute")
 
-    assert codex_env["CODEX_ACCESS_TOKEN"] == "codex-token"
     assert codex_env["GH_TOKEN"] == "github-token"
-    assert "CODEX_ACCESS_TOKEN" not in runtime_env
     assert "GH_TOKEN" not in runtime_env
-
-
-def test_codex_environment_ignores_empty_optional_token(
-    worker_rpc: ModuleType,
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    token = tmp_path / "codex"
-    token.touch()
-    monkeypatch.setenv("CODEX_ACCESS_TOKEN_FILE", str(token))
-
-    assert "CODEX_ACCESS_TOKEN" not in worker_rpc.job_environment(
-        "code.delegate"
-    )
 
 
 def test_codex_command_uses_configured_execution_profile(
@@ -334,14 +315,14 @@ def test_download_redacts_logs_and_excludes_inputs(
         assert "inputs/private.txt" not in archive.getnames()
 
 
-def test_logs_redact_scoped_secret_files(
+def test_logs_redact_scoped_github_secret_file(
     worker_rpc: ModuleType,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    secret = tmp_path / "codex"
+    secret = tmp_path / "github"
     secret.write_text("scoped-secret-value\n", encoding="utf-8")
-    monkeypatch.setenv("CODEX_ACCESS_TOKEN_FILE", str(secret))
+    monkeypatch.setenv("GH_TOKEN_FILE", str(secret))
     job = worker_rpc.workspace(worker_rpc.WORKSPACE_ROOT, SAFE_JOB_ID)
     job.root.mkdir(parents=True)
     job.stdout.write_text(
