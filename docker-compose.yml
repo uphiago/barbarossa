@@ -35,10 +35,19 @@ services:
         target: worker_authorized_keys
       - source: codex_access_token
         target: codex_access_token
+        uid: "10001"
+        gid: "10001"
+        mode: 0400
       - source: codex_auth_json
         target: codex_auth_json
+        uid: "10001"
+        gid: "10001"
+        mode: 0400
       - source: github_token
         target: github_token
+        uid: "10001"
+        gid: "10001"
+        mode: 0400
     volumes:
       - forge-workspace:/workspace
       - forge-codex-home:/home/forge/.codex
