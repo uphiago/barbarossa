@@ -30,24 +30,17 @@ services:
       WORKER_HOME: /home/forge
       WORKSPACE_ROOT: /workspace
       CODEX_HOME: /home/forge/.codex
+      CODEX_ACCESS_TOKEN_FILE: /run/barbarossa-secrets/codex_access_token
+      GH_TOKEN_FILE: /run/barbarossa-secrets/github_token
     secrets:
       - source: worker_authorized_keys
         target: worker_authorized_keys
       - source: codex_access_token
         target: codex_access_token
-        uid: "10001"
-        gid: "10001"
-        mode: 0400
       - source: codex_auth_json
         target: codex_auth_json
-        uid: "10001"
-        gid: "10001"
-        mode: 0400
       - source: github_token
         target: github_token
-        uid: "10001"
-        gid: "10001"
-        mode: 0400
     volumes:
       - forge-workspace:/workspace
       - forge-codex-home:/home/forge/.codex
