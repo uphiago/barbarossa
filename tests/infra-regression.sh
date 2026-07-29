@@ -62,6 +62,16 @@ assert set(secrets) == {
     "codex_auth_json",
     "github_token",
 }
+forge_secrets = {
+    secret["source"]: secret
+    for secret in services["forge"]["secrets"]
+    if isinstance(secret, dict)
+}
+for name in ("codex_access_token", "codex_auth_json", "github_token"):
+    assert forge_secrets[name]["target"] == name
+    assert forge_secrets[name]["uid"] == "10001"
+    assert forge_secrets[name]["gid"] == "10001"
+    assert forge_secrets[name]["mode"] == 0o400
 
 workflow_path = Path(".github/workflows/build-deploy.yml")
 workflow = yaml.safe_load(workflow_path.read_text())
