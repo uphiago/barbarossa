@@ -31,4 +31,33 @@ if [ -s "$auth_source" ]; then
     "$auth_source" "$auth_target"
 fi
 
-exec /usr/local/bin/worker-entrypoint "$@"
+codex_token_file="${CODEX_ACCESS_TOKEN_FILE:-/run/barbarossa-secrets/codex_access_token}"
+github_token_file="${GH_TOKEN_FILE:-/run/barbarossa-secrets/github_token}"
+codex_model="${BARBAROSSA_CODEX_MODEL:?BARBAROSSA_CODEX_MODEL is required}"
+codex_reasoning="${BARBAROSSA_CODEX_REASONING_EFFORT:?BARBAROSSA_CODEX_REASONING_EFFORT is required}"
+codex_subagents="${BARBAROSSA_CODEX_MAX_SUBAGENTS:?BARBAROSSA_CODEX_MAX_SUBAGENTS is required}"
+
+for value in \
+  "$codex_token_file" \
+  "$auth_target" \
+  "$github_token_file" \
+  "$codex_model" \
+  "$codex_reasoning" \
+  "$codex_subagents"; do
+  case "$value" in
+    "" | *[!A-Za-z0-9._:/+-]*)
+      printf 'invalid Forge session setting\n' >&2
+      exit 1
+      ;;
+  esac
+done
+
+session_environment="SetEnv=\
+CODEX_ACCESS_TOKEN_FILE=$codex_token_file \
+CODEX_AUTH_JSON_FILE=$auth_target \
+GH_TOKEN_FILE=$github_token_file \
+BARBAROSSA_CODEX_MODEL=$codex_model \
+BARBAROSSA_CODEX_REASONING_EFFORT=$codex_reasoning \
+BARBAROSSA_CODEX_MAX_SUBAGENTS=$codex_subagents"
+
+exec /usr/local/bin/worker-entrypoint "$@" -o "$session_environment"
