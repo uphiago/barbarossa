@@ -1,0 +1,23 @@
+containers/hermes/stage-secrets.sh
+  s_bb929435059764::t_7df6bbea993f4b 1-13
+tests/infra-regression.sh
+  s_bb929435059764::t_4479f15fe67af9 36-42
+tests/test-hermes-secret-stage.sh
+  s_bb929435059764::t_5ece5e72cd8b57 1-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "82b583bc077cf849570050c6407dd7e4bf210901",
+  "prompts": {},
+  "sessions": {
+    "s_bb929435059764": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019faf4f-811e-7140-a83c-a7757cca713b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
