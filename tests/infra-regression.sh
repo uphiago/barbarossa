@@ -192,6 +192,10 @@ grep -Fq 'chmod 0600 "$worker_key" "$codex_token" "$codex_auth"' \
 grep -Fq 'restrict,command="/usr/local/bin/worker-ssh-dispatch"' \
   scripts/deploy-runtime-files.sh
 grep -Fq 'BARBAROSSA_RUNTIME_DIR=$runtime' scripts/deploy-runtime-files.sh
+grep -Fq 'prune_release_images()' scripts/deploy-runtime-files.sh
+grep -Fq 'ghcr.io/uphiago/barbarossa-router-bundle' \
+  scripts/deploy-runtime-files.sh
+grep -Fq '"$docker" image rm "$image"' scripts/deploy-runtime-files.sh
 grep -Fq 'scripts/compose.sh' setup.sh
 grep -Fq 'scripts/compose.sh' scripts/smoke-remote.sh
 grep -Fq 'runtime_override=' scripts/compose.sh
