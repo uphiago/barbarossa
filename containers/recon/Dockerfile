@@ -96,6 +96,7 @@ RUN adduser -D -u 10002 -s /bin/bash recon \
     && printf '{}\n' > /home/recon/.config/subfinder/provider-config.yaml \
     && chown recon:recon /home/recon/.config/subfinder/provider-config.yaml \
     && chmod 0600 /home/recon/.config/subfinder/provider-config.yaml \
+    && su -s /bin/sh recon -c 'HOME=/home/recon tlsx -version >/dev/null' \
     && install -d /run/sshd /ssh-host-keys \
     && install -d -o tor -g tor /var/lib/tor \
     && printf '%s\n' \
