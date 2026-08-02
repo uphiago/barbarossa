@@ -80,6 +80,25 @@ async def test_runtime_execute_returns_structured_job(
     assert service.requests[0].command == "printf ok"
 
 
+async def test_code_delegate_passes_an_approved_codex_profile(
+    service: FakeService,
+) -> None:
+    async with Client(
+        create_server(service),
+        raise_exceptions=True,
+    ) as client:
+        result = await client.call_tool(
+            "code_delegate",
+            {
+                "prompt": "Review this change",
+                "codex_profile": "deep",
+            },
+        )
+
+    assert result.is_error is False
+    assert service.requests[-1].codex_profile == "deep"
+
+
 async def test_tor_is_explicit_and_routes_to_recon(
     service: FakeService,
 ) -> None:

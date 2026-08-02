@@ -25,7 +25,7 @@ build_forge() {
   docker run --rm --user forge -e CODEX_ACCESS_TOKEN=invalid \
     --entrypoint codex barbarossa-forge:test \
     exec --model gpt-5.6-luna \
-    --config 'model_reasoning_effort="medium"' \
+    --config 'model_reasoning_effort="high"' \
     --config 'agents.max_concurrent_threads_per_session=1' \
     --strict-config --skip-git-repo-check --json 'reply OK' \
     2>&1 | grep -F 'invalid agent identity JWT format'
@@ -41,6 +41,18 @@ build_recon() {
     grep -Fx '10002'
   docker run --rm --entrypoint sh barbarossa-recon:test -lc \
     'command -v nmap && command -v subfinder && command -v torsocks'
+  docker run --rm --user recon -e HOME=/home/recon \
+    --entrypoint subfinder barbarossa-recon:test -version 2>&1 |
+    grep -F 'Current Version: v2.14.0'
+  docker run --rm --user recon --entrypoint cat barbarossa-recon:test \
+    /home/recon/.config/subfinder/provider-config.yaml |
+    grep -Fx '{}'
+  docker run --rm --user recon -e HOME=/home/recon \
+    --entrypoint katana barbarossa-recon:test -version 2>&1 |
+    grep -F 'Current version: v1.6.1'
+  docker run --rm --user recon -e HOME=/home/recon \
+    --entrypoint tlsx barbarossa-recon:test -version 2>&1 |
+    grep -F 'Current version: v1.2.2'
   docker run --rm --entrypoint getcap barbarossa-recon:test \
     /usr/bin/masscan /usr/bin/nmap /usr/local/bin/naabu |
     grep -F 'cap_net_admin,cap_net_raw=eip'

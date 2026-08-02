@@ -18,7 +18,7 @@ def worker_rpc(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> ModuleType:
     monkeypatch.setenv("WORKSPACE_ROOT", str(tmp_path / "workspace"))
     monkeypatch.setenv("WORKER_HOME", str(tmp_path / "home"))
     monkeypatch.setenv("BARBAROSSA_CODEX_MODEL", "test-codex")
-    monkeypatch.setenv("BARBAROSSA_CODEX_REASONING_EFFORT", "medium")
+    monkeypatch.setenv("BARBAROSSA_CODEX_REASONING_EFFORT", "high")
     monkeypatch.setenv("BARBAROSSA_CODEX_MAX_SUBAGENTS", "1")
     spec = importlib.util.spec_from_file_location("worker_rpc", WORKER_RPC_PATH)
     assert spec is not None
@@ -54,7 +54,7 @@ def test_supervisor_environment_preserves_only_file_backed_codex_profile(
 
     assert env["CODEX_AUTH_JSON_FILE"] == "/staged/auth.json"
     assert env["BARBAROSSA_CODEX_MODEL"] == "test-codex"
-    assert env["BARBAROSSA_CODEX_REASONING_EFFORT"] == "medium"
+    assert env["BARBAROSSA_CODEX_REASONING_EFFORT"] == "high"
     assert env["BARBAROSSA_CODEX_MAX_SUBAGENTS"] == "1"
     assert "GH_TOKEN" not in env
     assert "CODEX_ACCESS_TOKEN" not in env
@@ -101,6 +101,37 @@ def test_codex_command_uses_configured_execution_profile(
     assert ["--model", "gpt-custom"] == argv[2:4]
     assert "model_reasoning_effort=\"high\"" in argv
     assert "agents.max_concurrent_threads_per_session=4" in argv
+
+
+@pytest.mark.parametrize(
+    ("profile", "model"),
+    [
+        ("fast", "gpt-5.6-luna"),
+        ("balanced", "gpt-5.6-terra"),
+        ("deep", "gpt-5.6-sol"),
+    ],
+)
+def test_codex_command_uses_high_reasoning_for_approved_profiles(
+    worker_rpc: ModuleType,
+    tmp_path: Path,
+    profile: str,
+    model: str,
+) -> None:
+    job = worker_rpc.workspace(tmp_path, "job_codex_01ARZ3NDEKTSV4RRFFQ69G5FAV")
+    job.outputs.mkdir(parents=True)
+
+    argv = worker_rpc.build_argv(
+        job,
+        {
+            "capability": "code.delegate",
+            "lane": "codex",
+            "prompt": "test",
+            "codex_profile": profile,
+        },
+    )
+
+    assert ["--model", model] == argv[2:4]
+    assert 'model_reasoning_effort="high"' in argv
 
 
 def test_codex_environment_uses_staged_secret_fallback(

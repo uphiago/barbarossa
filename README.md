@@ -70,7 +70,7 @@ architectural limit:
 | Hermes main model | DeepSeek V4 Flash through the native API |
 | Hermes delegation | Up to three child tasks, one level deep |
 | Forge runtime lane | One non-root shell, file, build, and conversion job |
-| Forge Codex lane | Codex GPT-5.6 Luna, medium reasoning |
+| Forge Codex lane | Codex GPT-5.6 Luna, high reasoning |
 | Codex delegation | Multi-agent enabled, one internal thread per session |
 | Recon lane | One authorized network job, direct or explicit Tor |
 
@@ -146,6 +146,22 @@ and delegate internally when its configured policy permits it.
 When configured, the GitHub credential is injected as `GH_TOKEN` only into
 Codex and image jobs. It is not exposed to Hermes, Recon, or the Forge runtime
 lane.
+
+### Codex Profiles
+
+The deployment default for Codex is configured with
+`BARBAROSSA_CODEX_MODEL` and `BARBAROSSA_CODEX_REASONING_EFFORT`; the reference
+profile defaults to Luna with `high` reasoning. Hermes can request one of the
+following per-job profiles for `code_delegate` and `media_image_*`:
+
+| Profile | Model | Reasoning |
+| --- | --- | --- |
+| `fast` | GPT-5.6 Luna | high |
+| `balanced` | GPT-5.6 Terra | high |
+| `deep` | GPT-5.6 Sol | high |
+
+Profiles are an allowlist: unrecognized values are rejected. Omitting a profile
+uses the deployment default.
 
 ## Security Boundaries
 

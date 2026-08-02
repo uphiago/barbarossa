@@ -33,7 +33,7 @@ services:
       CODEX_AUTH_JSON_FILE: /home/forge/.codex/auth.json
       GH_TOKEN_FILE: /run/barbarossa-secrets/github_token
       BARBAROSSA_CODEX_MODEL: ${BARBAROSSA_CODEX_MODEL:-gpt-5.6-luna}
-      BARBAROSSA_CODEX_REASONING_EFFORT: ${BARBAROSSA_CODEX_REASONING_EFFORT:-medium}
+      BARBAROSSA_CODEX_REASONING_EFFORT: ${BARBAROSSA_CODEX_REASONING_EFFORT:-high}
       BARBAROSSA_CODEX_MAX_SUBAGENTS: ${BARBAROSSA_CODEX_MAX_SUBAGENTS:-1}
     secrets:
       - source: worker_authorized_keys

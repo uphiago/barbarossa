@@ -13,6 +13,25 @@ def test_codex_request_uses_codex_lane() -> None:
     assert request.timeout_seconds == 2700
 
 
+def test_codex_request_accepts_an_approved_profile() -> None:
+    request = JobRequest(
+        capability="code.delegate",
+        prompt="Review this repo",
+        codex_profile="deep",
+    )
+
+    assert request.codex_profile == "deep"
+
+
+def test_codex_profile_is_rejected_for_non_codex_work() -> None:
+    with pytest.raises(ValidationError, match="Codex profiles"):
+        JobRequest(
+            capability="runtime.execute",
+            command="printf ok",
+            codex_profile="fast",
+        )
+
+
 def test_tor_is_valid_only_for_network_tor() -> None:
     with pytest.raises(ValidationError, match="Tor route requires network.tor"):
         JobRequest(
