@@ -9,8 +9,9 @@ Stage every attachment beneath `/opt/data/barbarossa-transfer` before calling a
 Forge tool. Pass only staged absolute paths to the router.
 
 - For inbound image attachments already staged by the gateway, call
-  `media_image_inspect` immediately. Do not call `vision_analyze`, auxiliary
-  vision providers, or the terminal command `file`.
+  `media_image_inspect` immediately with the complete accompanying user
+  request as its `prompt`. Do not call `vision_analyze`, auxiliary vision
+  providers, or the terminal command `file`.
 - Use `code_delegate` for repository analysis, implementation, review, and
   tests.
 - Use `media_image_inspect` to understand an existing image.

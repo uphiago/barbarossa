@@ -47,6 +47,8 @@ def test_stage_inbound_images_is_private_and_builds_codex_instruction(
     assert os.stat(staged).st_mode & 0o777 == 0o600
     assert str(staged) in message
     assert "media_image_inspect" in message
+    assert "prompt argument" in message
+    assert "full user request above verbatim" in message
     assert "vision_analyze" in message
     assert "command `file`" in message
 
