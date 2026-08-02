@@ -91,7 +91,8 @@ async def enrich_message_with_codex(
     return (
         f"{user_text}\n\n"
         "[System: attached images were staged for isolated Codex vision. "
-        "Call media_image_inspect once for each path below, poll that job, "
+        "Call media_image_inspect once for each path below with the prompt "
+        "argument set to the full user request above verbatim, poll that job, "
         "and answer from its result. Do not call vision_analyze and do not "
         "use the terminal command `file` for these images.]\n"
         f"{paths}"
