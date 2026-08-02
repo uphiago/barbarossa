@@ -50,7 +50,9 @@ build_recon() {
   docker run --rm --user recon -e HOME=/home/recon \
     --entrypoint katana barbarossa-recon:test -version 2>&1 |
     grep -F 'Current version: v1.6.1'
-  docker run --rm --user recon -e HOME=/home/recon \
+  docker run --rm --read-only \
+    --tmpfs /tmp:rw,noexec,nosuid,nodev,size=16m \
+    --user recon -e HOME=/home/recon \
     --entrypoint tlsx barbarossa-recon:test -version 2>&1 |
     grep -F 'Current version: v1.2.2'
   docker run --rm --entrypoint getcap barbarossa-recon:test \
