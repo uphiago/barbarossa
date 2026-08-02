@@ -25,7 +25,7 @@ build_forge() {
   docker run --rm --user forge -e CODEX_ACCESS_TOKEN=invalid \
     --entrypoint codex barbarossa-forge:test \
     exec --model gpt-5.6-luna \
-    --config 'model_reasoning_effort="medium"' \
+    --config 'model_reasoning_effort="high"' \
     --config 'agents.max_concurrent_threads_per_session=1' \
     --strict-config --skip-git-repo-check --json 'reply OK' \
     2>&1 | grep -F 'invalid agent identity JWT format'

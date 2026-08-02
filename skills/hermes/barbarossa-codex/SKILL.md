@@ -23,5 +23,9 @@ Forge tool. Pass only staged absolute paths to the router.
   artifact metadata or content.
 
 Forge receives its Codex model, reasoning effort, and internal subagent limit
-from the deployment profile. Promote valuable source or artifacts to a private
-Git repository manually; worker state remains disposable.
+from the deployment profile. For a Codex job, select `fast`, `balanced`, or
+`deep` only when its task benefits from that model: all three profiles use
+`high` reasoning, while `fast` uses Luna, `balanced` uses Terra, and `deep`
+uses Sol. Omit the profile to use the deployment default. Promote valuable
+source or artifacts to a private Git repository manually; worker state remains
+disposable.

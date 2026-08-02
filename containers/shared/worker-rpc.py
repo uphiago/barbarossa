@@ -31,6 +31,11 @@ JOB_ID_RE = re.compile(
     r"^job_(runtime|codex|image|recon)_[0-9A-HJKMNP-TV-Z]{26}$"
 )
 SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+CODEX_PROFILES = {
+    "fast": ("gpt-5.6-luna", "high"),
+    "balanced": ("gpt-5.6-terra", "high"),
+    "deep": ("gpt-5.6-sol", "high"),
+}
 
 CAPABILITY_LANES = {
     "runtime.execute": "runtime",
@@ -203,12 +208,18 @@ def require_text(request: dict[str, Any], field: str) -> str:
     return value
 
 
-def codex_command() -> list[str]:
-    model = os.environ.get("BARBAROSSA_CODEX_MODEL", "").strip()
-    reasoning = os.environ.get(
-        "BARBAROSSA_CODEX_REASONING_EFFORT",
-        "",
-    ).strip()
+def codex_command(request: dict[str, Any]) -> list[str]:
+    profile = request.get("codex_profile")
+    if profile is None:
+        model = os.environ.get("BARBAROSSA_CODEX_MODEL", "").strip()
+        reasoning = os.environ.get(
+            "BARBAROSSA_CODEX_REASONING_EFFORT",
+            "",
+        ).strip()
+    elif profile in CODEX_PROFILES:
+        model, reasoning = CODEX_PROFILES[profile]
+    else:
+        raise ValueError("codex_profile is invalid")
     raw_subagents = os.environ.get(
         "BARBAROSSA_CODEX_MAX_SUBAGENTS",
         "",
@@ -269,7 +280,7 @@ def build_argv(job: JobPaths, request: dict[str, Any]) -> list[str]:
         path = single_input(job, request)
         return ["file", "--brief", "--mime", "--", str(path)]
     if capability == "code.delegate":
-        return codex_command() + [
+        return codex_command(request) + [
             "--strict-config",
             "--skip-git-repo-check",
             "--json",
@@ -287,7 +298,7 @@ def build_argv(job: JobPaths, request: dict[str, Any]) -> list[str]:
                 f"$imagegen {prompt}\nEdit the attached image at {path}. "
                 f"Save the final image under {job.outputs}."
             )
-        return codex_command() + [
+        return codex_command(request) + [
             "--strict-config",
             "--skip-git-repo-check",
             "--json",
@@ -305,7 +316,7 @@ def build_argv(job: JobPaths, request: dict[str, Any]) -> list[str]:
             "Save the final image under "
             f"{job.outputs}."
         )
-        return codex_command() + [
+        return codex_command(request) + [
             "--strict-config",
             "--skip-git-repo-check",
             "--json",

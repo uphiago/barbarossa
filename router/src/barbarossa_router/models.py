@@ -25,6 +25,7 @@ JobState = Literal[
 Lane = Literal["runtime", "codex", "recon"]
 Route = Literal["direct", "tor"]
 Worker = Literal["forge", "recon"]
+CodexProfile = Literal["fast", "balanced", "deep"]
 
 JOB_ID_PATTERN = (
     r"^job_(runtime|codex|image|recon)_[0-9A-HJKMNP-TV-Z]{26}$"
@@ -53,6 +54,7 @@ class JobRequest(BaseModel):
     route: Route = "direct"
     timeout_seconds: int | None = Field(default=None, ge=1, le=7200)
     input_paths: list[str] = Field(default_factory=list, max_length=8)
+    codex_profile: CodexProfile | None = None
 
     worker: Worker = "forge"
     lane: Lane = "runtime"
@@ -94,6 +96,10 @@ class JobRequest(BaseModel):
             raise ValueError("this capability requires exactly one input file")
         if self.capability == "media.image.generate" and self.input_paths:
             raise ValueError("media.image.generate does not accept an input file")
+        if self.codex_profile and not self.capability.startswith(
+            ("code.", "media.image.")
+        ):
+            raise ValueError("Codex profiles are valid only for Codex capabilities")
         return self
 
 

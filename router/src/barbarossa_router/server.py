@@ -46,6 +46,7 @@ def create_server(service: RouterService) -> MCPServer:
         prompt: str,
         input_paths: list[str] | None = None,
         timeout_seconds: int = 2700,
+        codex_profile: str | None = None,
     ) -> JobStatus:
         """Queue an engineering job for the configured Codex profile."""
         return await service.submit(
@@ -54,6 +55,7 @@ def create_server(service: RouterService) -> MCPServer:
                 prompt=prompt,
                 input_paths=input_paths or [],
                 timeout_seconds=timeout_seconds,
+                codex_profile=codex_profile,
             )
         )
 
@@ -76,6 +78,7 @@ def create_server(service: RouterService) -> MCPServer:
         input_path: str,
         prompt: str,
         timeout_seconds: int = 1200,
+        codex_profile: str | None = None,
     ) -> JobStatus:
         """Inspect a staged image with Codex vision in Forge."""
         return await service.submit(
@@ -84,6 +87,7 @@ def create_server(service: RouterService) -> MCPServer:
                 input_paths=[input_path],
                 prompt=prompt,
                 timeout_seconds=timeout_seconds,
+                codex_profile=codex_profile,
             )
         )
 
@@ -91,6 +95,7 @@ def create_server(service: RouterService) -> MCPServer:
     async def media_image_generate(
         prompt: str,
         timeout_seconds: int = 1200,
+        codex_profile: str | None = None,
     ) -> JobStatus:
         """Generate an image through Codex and its image tool in Forge."""
         return await service.submit(
@@ -98,6 +103,7 @@ def create_server(service: RouterService) -> MCPServer:
                 capability="media.image.generate",
                 prompt=prompt,
                 timeout_seconds=timeout_seconds,
+                codex_profile=codex_profile,
             )
         )
 
@@ -106,6 +112,7 @@ def create_server(service: RouterService) -> MCPServer:
         input_path: str,
         prompt: str,
         timeout_seconds: int = 1200,
+        codex_profile: str | None = None,
     ) -> JobStatus:
         """Edit a staged image through Codex in Forge."""
         return await service.submit(
@@ -114,6 +121,7 @@ def create_server(service: RouterService) -> MCPServer:
                 input_paths=[input_path],
                 prompt=prompt,
                 timeout_seconds=timeout_seconds,
+                codex_profile=codex_profile,
             )
         )
 
