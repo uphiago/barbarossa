@@ -1,0 +1,18 @@
+config/hermes/gateway_entrypoint.py
+  h_0affcc7e886740 94-95
+skills/hermes/barbarossa-codex/SKILL.md
+  h_0affcc7e886740 12-14
+tests/test-hermes-gateway.py
+  h_0affcc7e886740 50-51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "33e6101032a74fbc643bd404fc6102f611288a97",
+  "prompts": {},
+  "humans": {
+    "h_0affcc7e886740": {
+      "author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
