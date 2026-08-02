@@ -1,0 +1,16 @@
+containers/recon/Dockerfile
+  h_0affcc7e886740 99
+tests/container-integration.sh
+  h_0affcc7e886740 53-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "f3236131a75576c8c13a404c75c1458eb84cdc8a",
+  "prompts": {},
+  "humans": {
+    "h_0affcc7e886740": {
+      "author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
