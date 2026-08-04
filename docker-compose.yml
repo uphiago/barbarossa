@@ -158,6 +158,7 @@ services:
       - ./skills/hermes/barbarossa-routing:/opt/barbarossa/context/skills/barbarossa-routing:ro
       - ./skills/hermes/barbarossa-codex:/opt/barbarossa/context/skills/barbarossa-codex:ro
       - ./skills/hermes/barbarossa-network:/opt/barbarossa/context/skills/barbarossa-network:ro
+      - ./skills/hermes/barbarossa-listmonk:/opt/barbarossa/context/skills/barbarossa-listmonk:ro
     networks:
       - hermes-forge
       - hermes-recon
