@@ -1,0 +1,18 @@
+docker-compose.yml
+  h_0affcc7e886740 161
+docs/listmonk-via-hermes.md
+  h_0affcc7e886740 1-124
+skills/hermes/barbarossa-listmonk/SKILL.md
+  h_0affcc7e886740 1-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "10e10e8370f523e8988b26a2721cf6fbd0d5b4c6",
+  "prompts": {},
+  "humans": {
+    "h_0affcc7e886740": {
+      "author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
