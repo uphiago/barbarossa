@@ -1,0 +1,30 @@
+.env.example
+  h_0affcc7e886740 27-30
+containers/shared/worker-rpc.py
+  h_0affcc7e886740 50-51,188-202,292-401,404,500-503
+docker-compose.yml
+  h_0affcc7e886740 35-36,47-50,168,210-213
+router/src/barbarossa_router/models.py
+  h_0affcc7e886740 16-17,46-47,62-67,96-101
+router/src/barbarossa_router/server.py
+  h_0affcc7e886740 170-205
+router/tests/test_server.py
+  h_0affcc7e886740 177-178
+scripts/deploy-runtime-files.sh
+  h_0affcc7e886740 17-18,22,27-30,36-37
+skills/hermes/barbarossa-gmail/SKILL.md
+  h_0affcc7e886740 1-73
+tests/infra-regression.sh
+  h_0affcc7e886740 73-74,81,90-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "f54a28fa5d0c9e9b841fce436dea082a79bb0234",
+  "prompts": {},
+  "humans": {
+    "h_0affcc7e886740": {
+      "author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
