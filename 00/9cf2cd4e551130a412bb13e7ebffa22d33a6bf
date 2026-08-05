@@ -1,0 +1,16 @@
+skills/hermes/barbarossa-gmail/SKILL.md
+  h_0affcc7e886740 37-48
+tests/infra-regression.sh
+  h_0affcc7e886740 171-176
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "009cf2cd4e551130a412bb13e7ebffa22d33a6bf",
+  "prompts": {},
+  "humans": {
+    "h_0affcc7e886740": {
+      "author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
