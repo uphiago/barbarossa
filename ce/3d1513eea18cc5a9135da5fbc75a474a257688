@@ -1,0 +1,33 @@
+.env.example
+  s_bc0cb8304951b8::t_1060dc3a9bdfb7 27-30
+containers/shared/worker-rpc.py
+  s_bc0cb8304951b8::t_e7e1b85065054e 50-51,188-202,292-401,404,500-503
+router/src/barbarossa_router/models.py
+  s_bc0cb8304951b8::t_0cb7539317493c 16-17,46-47,62-67,96-101
+router/src/barbarossa_router/server.py
+  s_bc0cb8304951b8::t_7287de1dee7758 170-205
+router/tests/test_server.py
+  s_bc0cb8304951b8::t_5bbe430f5db7aa 177-178
+scripts/deploy-runtime-files.sh
+  s_bc0cb8304951b8::t_6b3602930efddf 17-18,22,27-30,36-37
+skills/hermes/barbarossa-gmail/SKILL.md
+  s_bc0cb8304951b8::t_af7c8c4c90a3e8 1-73
+tests/infra-regression.sh
+  s_bc0cb8304951b8::t_f7ea4718d0b685 73-74,81,90-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "ce3d1513eea18cc5a9135da5fbc75a474a257688",
+  "prompts": {},
+  "sessions": {
+    "s_bc0cb8304951b8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fccf0-c8a5-79c1-b616-2954b44de798",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
