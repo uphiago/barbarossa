@@ -164,8 +164,16 @@ done
 grep -Fq 'router/.venv/' .gitignore
 grep -Fq 'install -d -o forge -g forge -m 0700 /run/barbarossa-secrets' \
   containers/forge/forge-entrypoint.sh
+grep -Fq 'for secret in github_token gmail_user gmail_app_password; do' \
+  containers/forge/forge-entrypoint.sh
 grep -Fq '"/run/barbarossa-secrets/$secret"' \
   containers/forge/forge-entrypoint.sh
+grep -Fq '### Required two-step confirmation' \
+  skills/hermes/barbarossa-gmail/SKILL.md
+grep -Fq 'Never call `gmail_send` on the first request' \
+  skills/hermes/barbarossa-gmail/SKILL.md
+grep -Fq 'A changed recipient, subject, or body invalidates the prior confirmation' \
+  skills/hermes/barbarossa-gmail/SKILL.md
 grep -Fq \
   'auth_source="${CODEX_AUTH_SOURCE_FILE:-/run/secrets/codex_auth_json}"' \
   containers/forge/forge-entrypoint.sh

@@ -34,6 +34,18 @@ gmail_send(
 - Plain-text body only. HTML is not supported by the current handler.
 - One recipient per call (`to` is a single address).
 
+### Required two-step confirmation
+
+Never call `gmail_send` on the first request to send an email. First, show a
+compact readback with the exact recipient, subject, and body, then ask for a
+second, unambiguous confirmation to send that exact message. Only that second
+confirmation authorizes the tool call.
+
+- A changed recipient, subject, or body invalidates the prior confirmation and
+  requires a new readback and confirmation.
+- Questions, draft requests, and "prepare" requests never authorize sending.
+- Reading email does not require confirmation.
+
 ## Read
 
 ```text
