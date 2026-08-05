@@ -174,6 +174,8 @@ async def test_server_exposes_only_approved_tools(
         "network_inspect",
         "network_fetch",
         "network_tor",
+        "gmail_send",
+        "gmail_read",
         "job_status",
         "job_logs",
         "job_cancel",
