@@ -1,0 +1,27 @@
+containers/forge/forge-entrypoint.sh
+  s_bc0cb8304951b8::t_bbf9e7b5f9ef1a 16
+docs/2026-08-05-forge-gmail-secrets-plan.md
+  s_bc0cb8304951b8::t_d415f155cba4bc 1-69
+docs/listmonk-via-hermes.md
+  s_bc0cb8304951b8::t_f000385ed06c29 37-41,55-92,113,127-164,196,198-199
+skills/hermes/barbarossa-listmonk/SKILL.md
+  s_bc0cb8304951b8::t_a12235d1680a6f 3,8-9,47-66,87-88,115,120-121,126-143,151-162,172-173
+tests/infra-regression.sh
+  s_bc0cb8304951b8::t_c6f211f8e3957e 167-168,171-176
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "725c051f3273da689570e74c85266c648c1c3623",
+  "prompts": {},
+  "sessions": {
+    "s_bc0cb8304951b8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fccf0-c8a5-79c1-b616-2954b44de798",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
