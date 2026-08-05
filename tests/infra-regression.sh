@@ -164,6 +164,8 @@ done
 grep -Fq 'router/.venv/' .gitignore
 grep -Fq 'install -d -o forge -g forge -m 0700 /run/barbarossa-secrets' \
   containers/forge/forge-entrypoint.sh
+grep -Fq 'for secret in github_token gmail_user gmail_app_password; do' \
+  containers/forge/forge-entrypoint.sh
 grep -Fq '"/run/barbarossa-secrets/$secret"' \
   containers/forge/forge-entrypoint.sh
 grep -Fq \

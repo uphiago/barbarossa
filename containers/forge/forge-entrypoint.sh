@@ -13,7 +13,7 @@ install -o forge -g forge -m 0600 \
   /home/forge/.codex/skills/barbarossa-artifacts/SKILL.md
 
 install -d -o forge -g forge -m 0700 /run/barbarossa-secrets
-for secret in github_token; do
+for secret in github_token gmail_user gmail_app_password; do
   source="/run/secrets/$secret"
   if [ -s "$source" ]; then
     install -o forge -g forge -m 0600 \
