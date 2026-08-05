@@ -70,13 +70,15 @@ assert set(secrets) == {
     "worker_known_hosts",
     "codex_auth_json",
     "github_token",
+    "gmail_user",
+    "gmail_app_password",
 }
 forge_secrets = {
     secret["source"]: secret
     for secret in services["forge"]["secrets"]
     if isinstance(secret, dict)
 }
-for name in ("codex_auth_json", "github_token"):
+for name in ("codex_auth_json", "github_token", "gmail_user", "gmail_app_password"):
     assert forge_secrets[name]["target"] == name
 forge_environment = services["forge"]["environment"]
 assert forge_environment["GH_TOKEN_FILE"] == (
@@ -84,6 +86,12 @@ assert forge_environment["GH_TOKEN_FILE"] == (
 )
 assert forge_environment["CODEX_AUTH_JSON_FILE"] == (
     "/home/forge/.codex/auth.json"
+)
+assert forge_environment["GMAIL_USER_FILE"] == (
+    "/run/barbarossa-secrets/gmail_user"
+)
+assert forge_environment["GMAIL_APP_PASSWORD_FILE"] == (
+    "/run/barbarossa-secrets/gmail_app_password"
 )
 
 workflow_path = Path(".github/workflows/build-deploy.yml")

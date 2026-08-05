@@ -47,6 +47,8 @@ CAPABILITY_LANES = {
     "network.inspect": "recon",
     "network.fetch": "recon",
     "network.tor": "recon",
+    "mail.send": "runtime",
+    "mail.read": "runtime",
 }
 FORGE_CAPABILITIES = {
     capability
@@ -183,6 +185,21 @@ def job_environment(capability: str) -> dict[str, str]:
                 if "\n" in value or "\r" in value:
                     raise ValueError(f"{variable} secret is malformed")
                 environment[variable] = value
+    if capability.startswith("mail."):
+        for variable, default_path in (
+            ("GMAIL_USER", "/run/secrets/gmail_user"),
+            ("GMAIL_APP_PASSWORD", "/run/secrets/gmail_app_password"),
+        ):
+            secret_path = readable_secret_path(variable, default_path)
+            if secret_path is not None:
+                value = secret_path.read_text(encoding="utf-8").removesuffix(
+                    "\n"
+                )
+                if not value:
+                    continue
+                if "\n" in value or "\r" in value:
+                    raise ValueError(f"{variable} secret is malformed")
+                environment[variable] = value
     return environment
 
 
@@ -272,10 +289,119 @@ def single_input(job: JobPaths, request: dict[str, Any]) -> Path:
     return path
 
 
+def mail_send_argv(request: dict[str, Any]) -> list[str]:
+    to = require_text(request, "to")
+    subject = require_text(request, "subject")
+    body = require_text(request, "body")
+    if "\n" in to or "\r" in to:
+        raise ValueError("to must be a single recipient")
+    script = r"""
+import json, os, smtplib, sys
+from email.mime.text import MIMEText
+from email.utils import formataddr
+
+data = json.loads(sys.argv[1])
+user = os.environ["GMAIL_USER"]
+password = os.environ["GMAIL_APP_PASSWORD"]
+
+msg = MIMEText(data["body"], "plain", "utf-8")
+msg["Subject"] = data["subject"]
+msg["From"] = formataddr(("hiago", user))
+msg["To"] = data["to"]
+
+with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as s:
+    s.starttls()
+    s.login(user, password)
+    s.sendmail(user, [data["to"]], msg.as_string())
+
+print(json.dumps({"sent": True, "to": data["to"], "subject": data["subject"]}))
+"""
+    payload = json.dumps({"to": to, "subject": subject, "body": body})
+    return ["/usr/bin/env", "python3", "-c", script, payload]
+
+
+def mail_read_argv(request: dict[str, Any]) -> list[str]:
+    mailbox = request.get("mailbox", "INBOX")
+    limit = request.get("limit", 10)
+    query = request.get("query", "ALL")
+    if not isinstance(mailbox, str) or not mailbox:
+        raise ValueError("mailbox is required")
+    if not isinstance(limit, int) or not 1 <= limit <= 50:
+        raise ValueError("limit must be between 1 and 50")
+    if not isinstance(query, str) or not query:
+        raise ValueError("query is required")
+    script = r"""
+import email, imaplib, json, os, sys
+from email.header import decode_header
+
+data = json.loads(sys.argv[1])
+user = os.environ["GMAIL_USER"]
+password = os.environ["GMAIL_APP_PASSWORD"]
+mailbox = data["mailbox"]
+limit = data["limit"]
+query = data["query"]
+
+def dec(value):
+    if not value:
+        return ""
+    parts = decode_header(value)
+    out = []
+    for raw, enc in parts:
+        if isinstance(raw, bytes):
+            out.append(raw.decode(enc or "utf-8", errors="replace"))
+        else:
+            out.append(raw)
+    return "".join(out)
+
+m = imaplib.IMAP4_SSL("imap.gmail.com", 993, timeout=30)
+m.login(user, password)
+m.select(mailbox)
+status, data = m.search(None, query)
+if status != "OK":
+    print(json.dumps({"error": "search failed"}))
+    m.logout()
+    raise SystemExit(1)
+ids = data[0].split()
+ids = ids[-limit:]
+results = []
+for i in ids:
+    st, msgdata = m.fetch(i, "(RFC822)")
+    if st != "OK":
+        continue
+    raw = msgdata[0][1]
+    msg = email.message_from_bytes(raw)
+    body = ""
+    if msg.is_multipart():
+        for part in msg.walk():
+            if part.get_content_type() == "text/plain":
+                body = part.get_payload(decode=True).decode(
+                    "utf-8", errors="replace"
+                )
+                break
+    else:
+        body = msg.get_payload(decode=True).decode("utf-8", errors="replace")
+    results.append({
+        "uid": i.decode(),
+        "from": dec(msg.get("From")),
+        "subject": dec(msg.get("Subject")),
+        "date": msg.get("Date"),
+        "body": body[:2000],
+    })
+m.logout()
+print(json.dumps(results, ensure_ascii=False))
+"""
+    return [
+        "/usr/bin/env",
+        "python3",
+        "-c",
+        script,
+        json.dumps({"mailbox": mailbox, "limit": limit, "query": query}),
+    ]
+
+
 def build_argv(job: JobPaths, request: dict[str, Any]) -> list[str]:
     capability = request.get("capability")
-    if capability == "runtime.execute":
-        return ["/bin/bash", "-lc", require_text(request, "command")]
+    if capability == "runtime.execute":        return ["/bin/bash", "-lc", require_text(request, "command")]
     if capability == "media.file.inspect":
         path = single_input(job, request)
         return ["file", "--brief", "--mime", "--", str(path)]
@@ -371,6 +497,10 @@ def build_argv(job: JobPaths, request: dict[str, Any]) -> list[str]:
             "--",
             url,
         ]
+    if capability == "mail.send":
+        return mail_send_argv(request)
+    if capability == "mail.read":
+        return mail_read_argv(request)
     raise ValueError("unsupported capability")
 
 

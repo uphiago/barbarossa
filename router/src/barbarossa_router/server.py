@@ -168,6 +168,42 @@ def create_server(service: RouterService) -> MCPServer:
         )
 
     @mcp.tool()
+    async def gmail_send(
+        to: str,
+        subject: str,
+        body: str,
+        timeout_seconds: int = 120,
+    ) -> JobStatus:
+        """Send an email from hey@hiago.sh via Gmail SMTP through Forge."""
+        return await service.submit(
+            JobRequest(
+                capability="mail.send",
+                to=to,
+                subject=subject,
+                body=body,
+                timeout_seconds=timeout_seconds,
+            )
+        )
+
+    @mcp.tool()
+    async def gmail_read(
+        mailbox: str = "INBOX",
+        limit: int = 10,
+        query: str = "ALL",
+        timeout_seconds: int = 120,
+    ) -> JobStatus:
+        """Read recent emails from hey@hiago.sh via Gmail IMAP through Forge."""
+        return await service.submit(
+            JobRequest(
+                capability="mail.read",
+                mailbox=mailbox,
+                limit=limit,
+                query=query,
+                timeout_seconds=timeout_seconds,
+            )
+        )
+
+    @mcp.tool()
     async def job_status(job_id: str) -> JobStatus:
         """Return the durable status of a Barbarossa job."""
         return await service.status(job_id)

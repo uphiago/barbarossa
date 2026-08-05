@@ -13,6 +13,8 @@ Capability = Literal[
     "network.inspect",
     "network.fetch",
     "network.tor",
+    "mail.send",
+    "mail.read",
 ]
 JobState = Literal[
     "queued",
@@ -41,6 +43,8 @@ CAPABILITY_POLICY: dict[Capability, tuple[Worker, Lane, int]] = {
     "network.inspect": ("recon", "recon", 1200),
     "network.fetch": ("recon", "recon", 1200),
     "network.tor": ("recon", "recon", 1200),
+    "mail.send": ("forge", "runtime", 120),
+    "mail.read": ("forge", "runtime", 120),
 }
 
 
@@ -55,6 +59,12 @@ class JobRequest(BaseModel):
     timeout_seconds: int | None = Field(default=None, ge=1, le=7200)
     input_paths: list[str] = Field(default_factory=list, max_length=8)
     codex_profile: CodexProfile | None = None
+    to: str | None = Field(default=None, max_length=512)
+    subject: str | None = Field(default=None, max_length=1024)
+    body: str | None = Field(default=None, max_length=65_536)
+    mailbox: str | None = Field(default=None, max_length=256)
+    limit: int | None = Field(default=None, ge=1, le=50)
+    query: str | None = Field(default=None, max_length=2048)
 
     worker: Worker = "forge"
     lane: Lane = "runtime"
@@ -83,6 +93,12 @@ class JobRequest(BaseModel):
             raise ValueError("prompt is required for this capability")
         if self.capability == "network.fetch" and self.url is None:
             raise ValueError("url is required for network.fetch")
+        if self.capability == "mail.send" and not (
+            self.to and self.subject and self.body
+        ):
+            raise ValueError("to, subject, and body are required for mail.send")
+        if self.capability == "mail.read" and self.mailbox is None:
+            raise ValueError("mailbox is required for mail.read")
 
         single_input_capabilities = {
             "media.file.inspect",

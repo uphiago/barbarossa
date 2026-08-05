@@ -14,12 +14,18 @@ authorized_keys="$runtime/authorized_keys"
 known_hosts="$runtime/known_hosts"
 codex_auth="$runtime/codex_auth.json"
 github_token="$runtime/github_token"
+gmail_user="$runtime/gmail_user"
+gmail_app_password="$runtime/gmail_app_password"
 router_bundle="$runtime/barbarossa-router.pex"
 compose_env="$runtime/compose.env"
 
-touch "$codex_auth" "$github_token"
+touch "$codex_auth" "$github_token" "$gmail_user" "$gmail_app_password"
 if [ ! -s "$codex_auth" ]; then
   printf 'missing Codex auth.json in %s\n' "$runtime" >&2
+  exit 1
+fi
+if [ ! -s "$gmail_app_password" ]; then
+  printf 'missing Gmail App Password in %s\n' "$runtime" >&2
   exit 1
 fi
 
@@ -27,7 +33,8 @@ rm -f "$worker_key" "$worker_key.pub" "$authorized_keys" "$known_hosts"
 ssh-keygen -q -t ed25519 -N "" -C "hermes@barbarossa" -f "$worker_key"
 printf 'restrict,command="/usr/local/bin/worker-ssh-dispatch" %s\n' \
   "$(cat "$worker_key.pub")" > "$authorized_keys"
-chmod 0600 "$worker_key" "$codex_auth" "$github_token"
+chmod 0600 "$worker_key" "$codex_auth" "$github_token" \
+  "$gmail_user" "$gmail_app_password"
 chmod 0644 "$authorized_keys"
 
 cat > "$compose_env" <<EOF
