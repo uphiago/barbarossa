@@ -1,0 +1,18 @@
+containers/forge/forge-entrypoint.sh
+  h_0affcc7e886740 16
+docs/2026-08-05-forge-gmail-secrets-plan.md
+  h_0affcc7e886740 1-69
+tests/infra-regression.sh
+  h_0affcc7e886740 167-168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "21d15593889a972b5a4613bd7171fda4114fb2ee",
+  "prompts": {},
+  "humans": {
+    "h_0affcc7e886740": {
+      "author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}

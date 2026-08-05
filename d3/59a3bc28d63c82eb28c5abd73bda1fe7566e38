@@ -1,0 +1,16 @@
+docs/listmonk-via-hermes.md
+  h_0affcc7e886740 37-41,55-92,113,127-164,196,198-199
+skills/hermes/barbarossa-listmonk/SKILL.md
+  h_0affcc7e886740 3,8-9,47-66,87-88,115,120-121,126-143,151-162,172-173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "d359a3bc28d63c82eb28c5abd73bda1fe7566e38",
+  "prompts": {},
+  "humans": {
+    "h_0affcc7e886740": {
+      "author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
