@@ -176,8 +176,8 @@ grep -Fq 'for secret in github_token gmail_user gmail_app_password; do' \
   containers/forge/forge-entrypoint.sh
 grep -Fq 'uv tool install specify-cli' \
   containers/forge/forge-entrypoint.sh
-grep -Fq 'UV_TOOL_BIN_DIR=/usr/local/bin' \
-  containers/forge/forge-entrypoint.sh
+grep -Fq 'home/forge/.local/bin' \
+  config/codex/config.toml
 grep -Fq 'npm install --global vercel' containers/forge/Dockerfile
 grep -Fq 'npm install --global supabase' containers/forge/Dockerfile
 grep -Fq 'astral.sh/uv/install.sh' containers/forge/Dockerfile
