@@ -23,15 +23,12 @@ done
 
 # Specify CLI (spec-kit) — install on first boot (root, before dropping to forge).
 # spec-kit enables spec-driven development for Codex jobs (/speckit.* skills).
-# uv needs a writable cache; the image root is read-only, so point it at /tmp.
+# /home/forge is a writable named volume, so uv uses the default cache there.
 if command -v uv >/dev/null 2>&1; then
   SPECIFY_TAG="${BARBAROSSA_SPECIFY_TAG:-v0.12.11}"
-  UV_CACHE_DIR=/tmp/uv-cache \
-  UV_TOOL_DIR=/usr/local/share/barbarossa/tools \
-  UV_TOOL_BIN_DIR=/usr/local/bin \
-    uv tool install specify-cli \
-      --from "git+https://github.com/github/spec-kit.git@${SPECIFY_TAG}" \
-      >/dev/null 2>&1 || true
+  uv tool install specify-cli \
+    --from "git+https://github.com/github/spec-kit.git@${SPECIFY_TAG}" \
+    >/dev/null 2>&1 || true
 fi
 
 auth_source="${CODEX_AUTH_SOURCE_FILE:-/run/secrets/codex_auth_json}"
