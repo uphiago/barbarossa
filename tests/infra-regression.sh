@@ -67,7 +67,7 @@ assert all(
 )
 assert services["hermes"]["image"] == (
     "nousresearch/hermes-agent@sha256:"
-    "545ef5a71b52b63aab08e29721701681d64465594ae5ffe7e860a8a758da0371"
+    "68e15ae2a6d894d0ccbd9f8aacbbe13d4d28fa5dc9b6a303970b67bb2499b1a6"
 )
 volumes = compose["volumes"]
 assert {"forge-host-keys", "recon-host-keys"} <= set(volumes)
