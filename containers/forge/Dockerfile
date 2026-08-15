@@ -7,7 +7,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ltrace openssh-server openssl python3 rsync strace tar unzip xxd \
     && rm -rf /var/lib/apt/lists/*
 
+# uv — package manager for the Specify CLI (spec-kit / spec-driven development)
+RUN curl -LsSf https://astral.sh/uv/install.sh \
+      | env UV_INSTALL_DIR=/usr/local/bin sh \
+    && uv --version \
+    && rm -rf /root/.cache/uv
+
 RUN npm install --global "@openai/codex@${CODEX_VERSION}" \
+    && npm install --global vercel \
+    && npm install --global supabase \
     && npm cache clean --force
 
 RUN useradd --create-home --uid 10001 --shell /bin/bash forge \

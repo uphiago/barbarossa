@@ -166,6 +166,11 @@ grep -Fq 'install -d -o forge -g forge -m 0700 /run/barbarossa-secrets' \
   containers/forge/forge-entrypoint.sh
 grep -Fq 'for secret in github_token gmail_user gmail_app_password; do' \
   containers/forge/forge-entrypoint.sh
+grep -Fq '"uv tool install specify-cli' \
+  containers/forge/forge-entrypoint.sh
+grep -Fq 'npm install --global vercel' containers/forge/Dockerfile
+grep -Fq 'npm install --global supabase' containers/forge/Dockerfile
+grep -Fq 'astral.sh/uv/install.sh' containers/forge/Dockerfile
 grep -Fq '"/run/barbarossa-secrets/$secret"' \
   containers/forge/forge-entrypoint.sh
 grep -Fq '### Required two-step confirmation' \
