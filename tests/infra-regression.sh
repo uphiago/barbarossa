@@ -49,6 +49,14 @@ assert "ports" not in services["forge"]
 assert "ports" not in services["recon"]
 assert services["forge"]["read_only"] is True
 assert services["recon"]["read_only"] is True
+assert any(
+    "forge-home:/home/forge" in volume
+    for volume in services["forge"]["volumes"]
+)
+assert any(
+    "forge-codex-home:/home/forge/.codex" in volume
+    for volume in services["forge"]["volumes"]
+)
 assert services["hermes"]["env_file"] == [
     "${BARBAROSSA_HERMES_ENV_FILE:?set BARBAROSSA_HERMES_ENV_FILE}"
 ]
@@ -166,7 +174,9 @@ grep -Fq 'install -d -o forge -g forge -m 0700 /run/barbarossa-secrets' \
   containers/forge/forge-entrypoint.sh
 grep -Fq 'for secret in github_token gmail_user gmail_app_password; do' \
   containers/forge/forge-entrypoint.sh
-grep -Fq '"uv tool install specify-cli' \
+grep -Fq 'uv tool install specify-cli' \
+  containers/forge/forge-entrypoint.sh
+grep -Fq 'UV_TOOL_BIN_DIR=/usr/local/bin' \
   containers/forge/forge-entrypoint.sh
 grep -Fq 'npm install --global vercel' containers/forge/Dockerfile
 grep -Fq 'npm install --global supabase' containers/forge/Dockerfile

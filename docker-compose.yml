@@ -51,6 +51,7 @@ services:
     volumes:
       - forge-workspace:/workspace
       - forge-codex-home:/home/forge/.codex
+      - forge-home:/home/forge
       - forge-host-keys:/ssh-host-keys
       - ./config/codex/config.toml:/usr/local/share/barbarossa/codex/config.toml:ro
       - ./skills/codex/barbarossa-artifacts/SKILL.md:/usr/local/share/barbarossa/codex/SKILL.md:ro
@@ -191,6 +192,7 @@ volumes:
   hermes-state:
   forge-workspace:
   forge-codex-home:
+  forge-home:
   forge-host-keys:
   recon-workspace:
   recon-tor-state:
