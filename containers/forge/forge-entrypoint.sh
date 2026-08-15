@@ -21,6 +21,15 @@ for secret in github_token gmail_user gmail_app_password; do
   fi
 done
 
+# Specify CLI (spec-kit) — install as forge on first boot if uv is present.
+# spec-kit enables spec-driven development for Codex jobs (/speckit.* skills).
+if command -v uv >/dev/null 2>&1; then
+  SPECIFY_TAG="${BARBAROSSA_SPECIFY_TAG:-v0.12.11}"
+  su - forge -c "uv tool install specify-cli \
+    --from 'git+https://github.com/github/spec-kit.git@${SPECIFY_TAG}'" \
+    >/dev/null 2>&1 || true
+fi
+
 auth_source="${CODEX_AUTH_SOURCE_FILE:-/run/secrets/codex_auth_json}"
 auth_target="${CODEX_AUTH_JSON_FILE:-/home/forge/.codex/auth.json}"
 if [ -s "$auth_source" ]; then
