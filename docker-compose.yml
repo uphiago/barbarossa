@@ -117,7 +117,7 @@ services:
 
   hermes:
     <<: *service-defaults
-    image: nousresearch/hermes-agent@sha256:68e15ae2a6d894d0ccbd9f8aacbbe13d4d28fa5dc9b6a303970b67bb2499b1a6
+    image: nousresearch/hermes-agent@sha256:b3190406963c6b51ac955397ecef45346efaae9563ee305108f8eef0a77e267b
     hostname: hermes
     mem_limit: ${BARBAROSSA_HERMES_MEMORY:-1024m}
     pids_limit: ${BARBAROSSA_HERMES_PIDS:-256}

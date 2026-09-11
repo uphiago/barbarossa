@@ -436,6 +436,34 @@ def test_run_runtime_job_records_result(
     assert worker_rpc.load_json(job.result)["status"] == "succeeded"
 
 
+@pytest.mark.parametrize("exit_code", [0, 7])
+def test_job_caches_are_private_and_removed_after_exit(
+    worker_rpc: ModuleType, exit_code: int,
+) -> None:
+    job = worker_rpc.workspace(worker_rpc.WORKSPACE_ROOT, SAFE_JOB_ID)
+    job.inputs.mkdir(parents=True)
+    job.outputs.mkdir()
+    command = (
+        "python3 -c 'import os,json,pathlib; "
+        "names=[\"TMPDIR\",\"npm_config_cache\",\"BUN_INSTALL_CACHE_DIR\","
+        "\"XDG_CACHE_HOME\",\"XDG_CONFIG_HOME\"]; "
+        "paths={n:os.environ[n] for n in names}; "
+        "[(pathlib.Path(p).mkdir(parents=True,exist_ok=True), "
+        "(pathlib.Path(p)/\"cache-data\").write_text(\"temporary\")) for p in paths.values()]; "
+        "print(json.dumps(paths)); pathlib.Path(\"outputs/keep.txt\").write_text(\"keep\")'; "
+        f"exit {exit_code}"
+    )
+    worker_rpc.atomic_json(job.request, {
+        "capability": "runtime.execute", "command": command, "lane": "runtime",
+    })
+    assert worker_rpc.run_job(SAFE_JOB_ID) == exit_code
+    paths = json.loads(job.stdout.read_text())
+    for value in paths.values():
+        assert Path(value).is_relative_to(job.root)
+        assert not Path(value).exists()
+    assert (job.outputs / "keep.txt").read_text() == "keep"
+
+
 def test_lane_lock_rejects_second_job(
     worker_rpc: ModuleType,
 ) -> None:

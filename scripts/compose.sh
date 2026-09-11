@@ -22,6 +22,8 @@ case "$runtime" in
 esac
 
 if [ -f "$runtime/compose.env" ]; then
+  # Shell exports (including .env above) otherwise override the active release.
+  unset BARBAROSSA_IMAGE_TAG BARBAROSSA_RUNTIME_DIR
   exec "$docker" compose \
     --env-file "$root/.env" \
     --env-file "$runtime/compose.env" \

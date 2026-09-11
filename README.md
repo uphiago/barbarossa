@@ -67,7 +67,7 @@ architectural limit:
 
 | Component | Checked-in configuration |
 | --- | --- |
-| Hermes main model | DeepSeek V4 Flash through the native API |
+| Hermes main model | DeepSeek V4.1 Flash (`deepseek-flash`) through the native API |
 | Hermes delegation | Up to three child tasks, one level deep |
 | Forge runtime lane | One non-root shell, file, build, and conversion job |
 | Forge Codex lane | Codex GPT-5.6 Luna, high reasoning |
@@ -104,9 +104,14 @@ The default profile uses:
 ```dotenv
 # hermes.env
 HERMES_MODEL_PROVIDER=deepseek
-HERMES_MODEL_NAME=deepseek-v4-flash
+HERMES_MODEL_NAME=deepseek-flash
 DEEPSEEK_API_KEY=...
 ```
+
+The native API identifier for DeepSeek-V4.1-Flash is `deepseek-flash`, as
+documented in [DeepSeek's model reference](https://api-docs.deepseek.com/quick_start/pricing/).
+The Barbarossa entrypoint registers this ID with the pinned Hermes version so
+the main agent and its children keep it when normalizing native model names.
 
 Changing providers does not require a code change:
 

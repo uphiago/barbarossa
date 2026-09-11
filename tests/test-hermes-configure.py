@@ -23,7 +23,7 @@ def set_required_model(
     monkeypatch,
     *,
     provider: str = "deepseek",
-    model: str = "deepseek-v4-flash",
+    model: str = "deepseek-flash",
 ) -> None:
     monkeypatch.setenv("HERMES_MODEL_PROVIDER", provider)
     monkeypatch.setenv("HERMES_MODEL_NAME", model)
