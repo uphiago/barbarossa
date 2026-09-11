@@ -1,22 +1,34 @@
-FROM node:24-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d
+FROM node:24-bookworm-slim@sha256:713cfbf4a0ac19f40e1bb9919893e126b74a5c8cf5d0623c9f89515c8f74c6fa
 
-ARG CODEX_VERSION=0.145.0
+ARG CODEX_VERSION=0.154.0
+ARG NPM_VERSION=12.0.2
+ARG VERCEL_VERSION=59.16.0
+ARG SUPABASE_VERSION=2.117.0
+ARG UV_VERSION=0.12.13
+ARG UV_SHA256=745765a3b6e360ad76743599ae5c42e9278c7edf8bbff9fc76d05bf2623a04dd
+# github/spec-kit v1.0.6, resolved to an immutable commit.
+ARG SPECIFY_REVISION=96c9bd657bfd5de0d651a6165084932b7304ac99
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash build-essential ca-certificates cmake curl file gdb gh git jq \
     ltrace openssh-server openssl python3 rsync strace tar unzip xxd \
     && rm -rf /var/lib/apt/lists/*
 
-# uv — package manager for the Specify CLI (spec-kit / spec-driven development)
-RUN curl -LsSf https://astral.sh/uv/install.sh \
-      | env UV_INSTALL_DIR=/usr/local/bin sh \
-    && uv --version \
-    && rm -rf /root/.cache/uv
+RUN curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-gnu.tar.gz" -o /tmp/uv.tar.gz \
+    && echo "${UV_SHA256}  /tmp/uv.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/uv.tar.gz -C /tmp \
+    && install -m 0755 /tmp/uv-x86_64-unknown-linux-gnu/uv /tmp/uv-x86_64-unknown-linux-gnu/uvx /usr/local/bin/ \
+    && rm -rf /tmp/uv.tar.gz /tmp/uv-x86_64-unknown-linux-gnu
 
-RUN npm install --global "@openai/codex@${CODEX_VERSION}" \
-    && npm install --global vercel \
-    && npm install --global supabase \
+RUN npm install --global "npm@${NPM_VERSION}" \
+    && npm install --global "@openai/codex@${CODEX_VERSION}" "vercel@${VERCEL_VERSION}" "supabase@${SUPABASE_VERSION}" \
     && npm cache clean --force
+
+# Install once in the image, outside /home/forge (a persistent volume).
+RUN UV_TOOL_DIR=/opt/barbarossa-tools UV_TOOL_BIN_DIR=/usr/local/bin UV_CACHE_DIR=/tmp/uv-cache \
+      uv tool install --python /usr/bin/python3 \
+        --from "git+https://github.com/github/spec-kit.git@${SPECIFY_REVISION}" specify-cli \
+    && rm -rf /tmp/uv-cache
 
 RUN useradd --create-home --uid 10001 --shell /bin/bash forge \
     && usermod --password \

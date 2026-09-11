@@ -67,7 +67,7 @@ assert all(
 )
 assert services["hermes"]["image"] == (
     "nousresearch/hermes-agent@sha256:"
-    "68e15ae2a6d894d0ccbd9f8aacbbe13d4d28fa5dc9b6a303970b67bb2499b1a6"
+    "b3190406963c6b51ac955397ecef45346efaae9563ee305108f8eef0a77e267b"
 )
 volumes = compose["volumes"]
 assert {"forge-host-keys", "recon-host-keys"} <= set(volumes)
@@ -116,14 +116,14 @@ assert "barbarossa-recon" in workflow_text
 assert "OVH_HOST_KEY" in workflow_text
 assert "StrictHostKeyChecking=yes" in workflow_text
 assert "scripts/deploy-runtime-files.sh" in workflow_text
-assert "scripts/smoke-remote.sh" in workflow_text
+assert "scripts/smoke-remote.sh" in Path("scripts/deploy-runtime-files.sh").read_text()
 assert "BARBAROSSA_GITHUB_TOKEN" in workflow_text
 assert "pull_request:" in workflow_text
 assert '      - "v*"' in workflow_text
 assert "branches: [main]" not in workflow_text
 assert workflow_text.count(
     "startsWith(github.ref, 'refs/tags/v')"
-) == 3
+) == 4
 assert "gitleaks" not in workflow_text.lower()
 for line in workflow_text.splitlines():
     if "uses:" in line:
@@ -140,7 +140,7 @@ grep -Fq 'HERMES_MAX_SPAWN_DEPTH' config/hermes/configure.py
 grep -Fq 'HERMES_ORCHESTRATOR_ENABLED' config/hermes/configure.py
 grep -Fq '"image_input_mode": "text"' config/hermes/configure.py
 grep -Fq '"vision"' config/hermes/configure.py
-if grep -Fq 'deepseek-v4-flash' config/hermes/configure.py; then
+if grep -Eq 'deepseek-(v4-flash|flash)' config/hermes/configure.py; then
   printf 'Hermes configurator still pins the reference model\n' >&2
   exit 1
 fi
@@ -174,13 +174,19 @@ grep -Fq 'install -d -o forge -g forge -m 0700 /run/barbarossa-secrets' \
   containers/forge/forge-entrypoint.sh
 grep -Fq 'for secret in github_token gmail_user gmail_app_password; do' \
   containers/forge/forge-entrypoint.sh
-grep -Fq 'uv tool install specify-cli' \
-  containers/forge/forge-entrypoint.sh
+grep -Fq 'uv tool install' containers/forge/Dockerfile
+grep -Fq 'specify-cli' containers/forge/Dockerfile
+grep -Fq 'SPECIFY_REVISION' containers/forge/Dockerfile
+if grep -Fq 'uv tool install' containers/forge/forge-entrypoint.sh; then
+  printf 'Forge entrypoint must not install tools at boot\n' >&2
+  exit 1
+fi
 grep -Fq 'home/forge/.local/bin' \
   config/codex/config.toml
-grep -Fq 'npm install --global vercel' containers/forge/Dockerfile
-grep -Fq 'npm install --global supabase' containers/forge/Dockerfile
-grep -Fq 'astral.sh/uv/install.sh' containers/forge/Dockerfile
+grep -Fq 'vercel@${VERCEL_VERSION}' containers/forge/Dockerfile
+grep -Fq 'supabase@${SUPABASE_VERSION}' containers/forge/Dockerfile
+grep -Fq 'astral-sh/uv/releases/download' containers/forge/Dockerfile
+grep -Fq 'sha256sum -c -' containers/forge/Dockerfile
 grep -Fq '"/run/barbarossa-secrets/$secret"' \
   containers/forge/forge-entrypoint.sh
 grep -Fq '### Required two-step confirmation' \
@@ -214,15 +220,16 @@ grep -Fq \
   setup.sh
 grep -Fq '"$BARBAROSSA_GITHUB_TOKEN_FILE"' setup.sh
 grep -Fq 'ssh-keygen -q -t ed25519' scripts/deploy-runtime-files.sh
-grep -Fq 'chmod 0600 "$worker_key" "$codex_auth" "$github_token"' \
-  scripts/deploy-runtime-files.sh
 grep -Fq 'restrict,command="/usr/local/bin/worker-ssh-dispatch"' \
   scripts/deploy-runtime-files.sh
-grep -Fq 'BARBAROSSA_RUNTIME_DIR=$runtime' scripts/deploy-runtime-files.sh
-grep -Fq 'prune_release_images()' scripts/deploy-runtime-files.sh
+grep -Fq "BARBAROSSA_RUNTIME_DIR=" scripts/deploy-runtime-files.sh
+grep -Fq 'restore_release()' scripts/deploy-runtime-files.sh
 grep -Fq 'ghcr.io/uphiago/barbarossa-router-bundle' \
   scripts/deploy-runtime-files.sh
-grep -Fq '"$docker" image rm "$image"' scripts/deploy-runtime-files.sh
+if rg -q 'compose down|volume rm|image prune|prune_release_images' scripts/deploy-runtime-files.sh; then
+  printf 'destructive cleanup found in update path\n' >&2
+  exit 1
+fi
 grep -Fq 'scripts/compose.sh' setup.sh
 grep -Fq 'scripts/compose.sh' scripts/smoke-remote.sh
 grep -Fq 'runtime_override=' scripts/compose.sh

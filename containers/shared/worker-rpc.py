@@ -642,13 +642,30 @@ def run_job(job_id: str) -> int:
         try:
             argv = build_argv(job, request)
             with (
+                tempfile.TemporaryDirectory(prefix=".scratch-", dir=job.root) as scratch,
                 job.stdout.open("ab", buffering=0) as stdout,
                 job.stderr.open("ab", buffering=0) as stderr,
             ):
+                environment = job_environment(request["capability"])
+                # Package managers otherwise accumulate caches in the shared
+                # 128 MiB tmpfs. Job-owned scratch lives on the workspace and
+                # is removed on success, failure and supervised cancellation.
+                # Recon runs on a read-only rootfs, so ProjectDiscovery tools
+                # cannot write $HOME/.config either; redirect both XDG roots to
+                # the scratch and let each tool recreate its own configuration.
+                config_home = Path(scratch) / "config"
+                config_home.mkdir(parents=True, exist_ok=True)
+                environment.update({
+                    "TMPDIR": scratch,
+                    "npm_config_cache": str(Path(scratch) / "npm"),
+                    "BUN_INSTALL_CACHE_DIR": str(Path(scratch) / "bun"),
+                    "XDG_CACHE_HOME": str(Path(scratch) / "cache"),
+                    "XDG_CONFIG_HOME": str(config_home),
+                })
                 child = subprocess.Popen(
                     argv,
                     cwd=job.root,
-                    env=job_environment(request["capability"]),
+                    env=environment,
                     stdin=subprocess.DEVNULL,
                     stdout=stdout,
                     stderr=stderr,
