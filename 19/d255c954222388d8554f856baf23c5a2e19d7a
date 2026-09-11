@@ -1,0 +1,43 @@
+README.md
+  s_648cb42ba3f938::t_9a2f820197644c 70,107,111-115
+config/hermes/gateway_entrypoint.py
+  s_648cb42ba3f938::t_1ffa9d0a2b6d1a 103-108
+containers/forge/Dockerfile
+  s_648cb42ba3f938::t_602e322b164e21 1,3-10,17-21,23-24,27-32
+containers/recon/Dockerfile
+  s_648cb42ba3f938::t_341bae186a804d 3-7,10-11,24,30,36,42,48,66,72
+docker-compose.yml
+  s_648cb42ba3f938::t_e662ba4ace061c 120
+hermes.env.example
+  s_648cb42ba3f938::t_b22cb3c4a92f47 1,3
+router/pyproject.toml
+  s_648cb42ba3f938::t_ad4ca5c8f1a63f 2,12-13,25
+router/uv.lock
+  s_648cb42ba3f938::t_fa6ec711a6e2f1 75-76,80,327,345,347,352,358,360,386,388,390-391,414,422,424,429,434,436-499
+scripts/compose.sh
+  s_648cb42ba3f938::t_b4bc29db32f822 25-26
+scripts/deploy-runtime-files.sh
+  s_648cb42ba3f938::t_b2a2f7b24946e7 9-26,28-40,47-51,54,56-82,85-101,103-107,109-149,151-152,154,158,160-162,164-218,220-221,223-246
+tests/hermes-image-integration.sh
+  s_648cb42ba3f938::t_e35b4c76ee61db 1-21
+tests/test-deploy-runtime.py
+  s_648cb42ba3f938::t_46bddc46ae1bcb 1-264
+tests/test-hermes-configure.py
+  s_648cb42ba3f938::t_bb98ab60b9d3a3 26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "19d255c954222388d8554f856baf23c5a2e19d7a",
+  "prompts": {},
+  "sessions": {
+    "s_648cb42ba3f938": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a08cb9-be19-7bf3-8c1d-1c51cd599de8",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "uphiago <129319177+uphiago@users.noreply.github.com>"
+    }
+  }
+}
