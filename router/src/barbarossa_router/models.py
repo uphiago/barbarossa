@@ -27,7 +27,7 @@ JobState = Literal[
 Lane = Literal["runtime", "codex", "recon"]
 Route = Literal["direct", "tor"]
 Worker = Literal["forge", "recon"]
-CodexProfile = Literal["fast", "balanced", "deep"]
+CodexProfile = Literal["fast", "balanced", "deep", "astra"]
 
 JOB_ID_PATTERN = (
     r"^job_(runtime|codex|image|recon)_[0-9A-HJKMNP-TV-Z]{26}$"
