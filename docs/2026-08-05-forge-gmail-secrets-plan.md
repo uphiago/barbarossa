@@ -56,7 +56,7 @@ tests/test-hermes-secret-stage.sh
 uv run --with pyyaml==6.0.3 bash tests/infra-regression.sh
 ```
 
-- [ ] Commit only the Gmail staging fix, its regression test, and the already-approved Listmonk operational documentation.
+- [ ] Commit only the Gmail staging fix and its regression test.
 - [ ] Push the branch/tag that triggers `.github/workflows/build-deploy.yml`, then wait for its validate, worker build, and OVH deploy jobs.
 
 ### Task 4: Verify the OVH runtime
