@@ -226,7 +226,7 @@ grep -Fq "BARBAROSSA_RUNTIME_DIR=" scripts/deploy-runtime-files.sh
 grep -Fq 'restore_release()' scripts/deploy-runtime-files.sh
 grep -Fq 'ghcr.io/uphiago/barbarossa-router-bundle' \
   scripts/deploy-runtime-files.sh
-if rg -q 'compose down|volume rm|image prune|prune_release_images' scripts/deploy-runtime-files.sh; then
+if grep -qE 'compose down|volume rm|image prune|prune_release_images' scripts/deploy-runtime-files.sh; then
   printf 'destructive cleanup found in update path\n' >&2
   exit 1
 fi
