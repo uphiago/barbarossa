@@ -164,6 +164,11 @@ following per-job profiles for `code_delegate` and `media_image_*`:
 | `fast` | GPT-5.6 Luna | high |
 | `balanced` | GPT-5.6 Terra | high |
 | `deep` | GPT-5.6 Sol | high |
+| `astra` | GPT-6 Astra | xhigh |
+
+The profiles ascend in capability. `astra` is the newest generation and carries
+the highest reasoning level — use it for a full audit or a genuinely hard
+question, and the `high` profiles for everything else.
 
 Profiles are an allowlist: unrecognized values are rejected. Omitting a profile
 uses the deployment default.
