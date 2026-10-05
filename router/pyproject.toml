@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling==1.32.0"]
+requires = ["hatchling==1.32.4"]
 build-backend = "hatchling.build"
 
 [project]
@@ -8,8 +8,8 @@ version = "0.1.0"
 description = "Typed MCP router for Barbarossa workers"
 requires-python = ">=3.12"
 dependencies = [
-  "asyncssh==2.24.0",
-  "mcp==2.2.0",
+  "asyncssh==2.24.1",
+  "mcp==2.3.0",
   "pydantic==2.13.5",
 ]
 
@@ -22,7 +22,7 @@ dev = [
   "pytest-asyncio==1.4.0",
 ]
 bundle = [
-  "pex==2.101.5",
+  "pex==2.103.4",
 ]
 
 [tool.hatch.build.targets.wheel]
