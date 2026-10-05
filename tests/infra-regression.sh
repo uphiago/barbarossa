@@ -118,7 +118,9 @@ assert "StrictHostKeyChecking=yes" in workflow_text
 assert "scripts/deploy-runtime-files.sh" in workflow_text
 assert "scripts/smoke-remote.sh" in Path("scripts/deploy-runtime-files.sh").read_text()
 assert "BARBAROSSA_GITHUB_TOKEN" in workflow_text
-assert "pull_request:" in workflow_text
+# Deploy-only triggers: no PR verification runs.
+assert "pull_request:" not in workflow_text
+assert "workflow_dispatch:" in workflow_text
 assert '      - "v*"' in workflow_text
 assert "branches: [main]" not in workflow_text
 assert workflow_text.count(
