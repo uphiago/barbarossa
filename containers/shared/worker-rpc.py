@@ -35,6 +35,10 @@ CODEX_PROFILES = {
     "fast": ("gpt-5.6-luna", "high"),
     "balanced": ("gpt-5.6-terra", "high"),
     "deep": ("gpt-5.6-sol", "high"),
+    # Ascending capability: Luna -> Terra -> Sol -> Astra. Astra is the newest
+    # generation and runs at xhigh; use it when a task is worth the extra work
+    # (a full audit, a hard design question), not by default.
+    "astra": ("gpt-6-astra", "xhigh"),
 }
 
 CAPABILITY_LANES = {

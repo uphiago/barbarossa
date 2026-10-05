@@ -104,18 +104,20 @@ def test_codex_command_uses_configured_execution_profile(
 
 
 @pytest.mark.parametrize(
-    ("profile", "model"),
+    ("profile", "model", "reasoning"),
     [
-        ("fast", "gpt-5.6-luna"),
-        ("balanced", "gpt-5.6-terra"),
-        ("deep", "gpt-5.6-sol"),
+        ("fast", "gpt-5.6-luna", "high"),
+        ("balanced", "gpt-5.6-terra", "high"),
+        ("deep", "gpt-5.6-sol", "high"),
+        ("astra", "gpt-6-astra", "xhigh"),
     ],
 )
-def test_codex_command_uses_high_reasoning_for_approved_profiles(
+def test_codex_command_uses_approved_reasoning_for_profiles(
     worker_rpc: ModuleType,
     tmp_path: Path,
     profile: str,
     model: str,
+    reasoning: str,
 ) -> None:
     job = worker_rpc.workspace(tmp_path, "job_codex_01ARZ3NDEKTSV4RRFFQ69G5FAV")
     job.outputs.mkdir(parents=True)
@@ -131,7 +133,7 @@ def test_codex_command_uses_high_reasoning_for_approved_profiles(
     )
 
     assert ["--model", model] == argv[2:4]
-    assert 'model_reasoning_effort="high"' in argv
+    assert f'model_reasoning_effort="{reasoning}"' in argv
 
 
 def test_codex_environment_uses_staged_secret_fallback(
