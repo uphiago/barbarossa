@@ -1,13 +1,13 @@
-FROM node:24-bookworm-slim@sha256:713cfbf4a0ac19f40e1bb9919893e126b74a5c8cf5d0623c9f89515c8f74c6fa
+FROM node:24-bookworm-slim@sha256:5cbc7caba8c2c0f0bca675d1b61b9f2857e1cf1853c6164ee9dd409501a936e7
 
-ARG CODEX_VERSION=0.154.0
-ARG NPM_VERSION=12.0.2
-ARG VERCEL_VERSION=59.16.0
-ARG SUPABASE_VERSION=2.117.0
-ARG UV_VERSION=0.12.13
-ARG UV_SHA256=745765a3b6e360ad76743599ae5c42e9278c7edf8bbff9fc76d05bf2623a04dd
-# github/spec-kit v1.0.6, resolved to an immutable commit.
-ARG SPECIFY_REVISION=96c9bd657bfd5de0d651a6165084932b7304ac99
+ARG CODEX_VERSION=0.160.0
+ARG NPM_VERSION=12.2.0
+ARG VERCEL_VERSION=62.2.0
+ARG SUPABASE_VERSION=2.119.0
+ARG UV_VERSION=0.12.23
+ARG UV_SHA256=9167d72b3319674b6303c4cbe071854bba13ebdf3d76b1a7cbdc175471fb66d6
+# github/spec-kit v1.1.0, resolved to an immutable commit.
+ARG SPECIFY_REVISION=f1d3a4f8337ebbd3ae22760a9c12e3352b93a175
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash build-essential ca-certificates cmake curl file gdb gh git jq \
