@@ -51,6 +51,7 @@ services:
     volumes:
       - forge-workspace:/workspace
       - forge-codex-home:/home/forge/.codex
+      - forge-home:/home/forge
       - forge-host-keys:/ssh-host-keys
       - ./config/codex/config.toml:/usr/local/share/barbarossa/codex/config.toml:ro
       - ./skills/codex/barbarossa-artifacts/SKILL.md:/usr/local/share/barbarossa/codex/SKILL.md:ro
@@ -116,7 +117,7 @@ services:
 
   hermes:
     <<: *service-defaults
-    image: nousresearch/hermes-agent@sha256:545ef5a71b52b63aab08e29721701681d64465594ae5ffe7e860a8a758da0371
+    image: nousresearch/hermes-agent@sha256:b3190406963c6b51ac955397ecef45346efaae9563ee305108f8eef0a77e267b
     hostname: hermes
     mem_limit: ${BARBAROSSA_HERMES_MEMORY:-1024m}
     pids_limit: ${BARBAROSSA_HERMES_PIDS:-256}
@@ -164,7 +165,6 @@ services:
       - ./skills/hermes/barbarossa-routing:/opt/barbarossa/context/skills/barbarossa-routing:ro
       - ./skills/hermes/barbarossa-codex:/opt/barbarossa/context/skills/barbarossa-codex:ro
       - ./skills/hermes/barbarossa-network:/opt/barbarossa/context/skills/barbarossa-network:ro
-      - ./skills/hermes/barbarossa-listmonk:/opt/barbarossa/context/skills/barbarossa-listmonk:ro
       - ./skills/hermes/barbarossa-gmail:/opt/barbarossa/context/skills/barbarossa-gmail:ro
     networks:
       - hermes-forge
@@ -191,6 +191,7 @@ volumes:
   hermes-state:
   forge-workspace:
   forge-codex-home:
+  forge-home:
   forge-host-keys:
   recon-workspace:
   recon-tor-state:

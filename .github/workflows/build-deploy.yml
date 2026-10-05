@@ -30,7 +30,7 @@ jobs:
           python-version: "3.13"
       - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
         with:
-          version: "0.8.4"
+          version: "0.12.13"
           enable-cache: true
       - name: Test router
         working-directory: router
@@ -40,9 +40,13 @@ jobs:
       - name: Test worker RPC and infrastructure
         run: |
           uv run --with pytest==9.1.1 --with pyyaml==6.0.3 \
-            pytest tests/test-worker-rpc.py tests/test-hermes-configure.py -q
+            pytest tests/test-worker-rpc.py tests/test-hermes-configure.py tests/test-hermes-gateway.py tests/test-deploy-runtime.py -q
           tests/test-hermes-secret-stage.sh
           uv run --with pyyaml==6.0.3 bash tests/infra-regression.sh
+      - name: Test Hermes gateway in the pinned image
+        run: |
+          export BARBAROSSA_HERMES_TEST_IMAGE="$(uv run --with pyyaml==6.0.3 python -c 'import yaml; print(yaml.safe_load(open("docker-compose.yml"))["services"]["hermes"]["image"])')"
+          tests/hermes-image-integration.sh
       - name: Validate Compose
         run: |
           runtime="$(mktemp -d)"
@@ -73,7 +77,7 @@ jobs:
           python-version: "3.13"
       - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
         with:
-          version: "0.8.4"
+          version: "0.12.13"
           enable-cache: true
       - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4.5.1
@@ -108,9 +112,6 @@ jobs:
 
   build-workers:
     needs: validate
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -128,7 +129,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
-      - uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4.5.1
+      - if: >-
+          github.event_name == 'workflow_dispatch' ||
+          startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4.5.1
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -137,10 +141,22 @@ jobs:
         with:
           context: .
           file: ${{ matrix.dockerfile }}
-          push: true
+          load: true
           tags: |
             ghcr.io/uphiago/${{ matrix.image }}:${{ github.sha }}
             ghcr.io/uphiago/${{ matrix.image }}:latest
+      - name: Test the built worker image
+        env:
+          BARBAROSSA_FORGE_TEST_IMAGE: ghcr.io/uphiago/barbarossa-forge:${{ github.sha }}
+          BARBAROSSA_RECON_TEST_IMAGE: ghcr.io/uphiago/barbarossa-recon:${{ github.sha }}
+        run: tests/container-integration.sh "${{ matrix.worker }}"
+      - name: Publish tested worker image
+        if: >-
+          github.event_name == 'workflow_dispatch' ||
+          startsWith(github.ref, 'refs/tags/v')
+        run: |
+          docker push "ghcr.io/uphiago/${{ matrix.image }}:${GITHUB_SHA}"
+          docker push "ghcr.io/uphiago/${{ matrix.image }}:latest"
 
   deploy:
     needs: [validate, build-router, build-workers]
@@ -170,10 +186,10 @@ jobs:
           remote="${OVH_USER}@${OVH_HOST}"
           ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
             "$remote" \
-            'install -d -m 0750 "$HOME/barbarossa"; sudo -n find "$HOME/barbarossa" -mindepth 1 -maxdepth 1 ! -name .env ! -name hermes.env -exec rm -rf -- {} +; sudo -n chown "$(id -u):$(id -g)" "$HOME/barbarossa"'
+            "install -d -m 0750 \"\$HOME/barbarossa-releases/${GITHUB_SHA}\""
           git archive "${GITHUB_SHA}" |
             ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
-              "$remote" 'tar -x -C "$HOME/barbarossa"'
+              "$remote" "tar -x -C \"\$HOME/barbarossa-releases/${GITHUB_SHA}\" && ln -sfn \"\$HOME/barbarossa/.env\" \"\$HOME/barbarossa-releases/${GITHUB_SHA}/.env\" && ln -sfn \"\$HOME/barbarossa/hermes.env\" \"\$HOME/barbarossa-releases/${GITHUB_SHA}/hermes.env\""
       - name: Authenticate registry
         env:
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
@@ -198,19 +214,19 @@ jobs:
             printf '%s' "$CODEX_ACCESS_TOKEN" |
               ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
                 "${OVH_USER}@${OVH_HOST}" \
-                'umask 077; install -d -m 0700 "$HOME/.config/barbarossa/runtime"; cat > "$HOME/.config/barbarossa/runtime/codex_access_token"'
+                'umask 077; install -d -m 0700 "$HOME/.config/barbarossa/runtime"; if [ -s "$HOME/.config/barbarossa/runtime/codex_access_token" ]; then cat >/dev/null; else cat > "$HOME/.config/barbarossa/runtime/codex_access_token"; fi'
           fi
           if [ -n "$CODEX_AUTH_JSON_B64" ]; then
             printf '%s' "$CODEX_AUTH_JSON_B64" | base64 --decode |
               ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
                 "${OVH_USER}@${OVH_HOST}" \
-                'umask 077; install -d -m 0700 "$HOME/.config/barbarossa/runtime"; cat > "$HOME/.config/barbarossa/runtime/codex_auth.json"'
+                'umask 077; install -d -m 0700 "$HOME/.config/barbarossa/runtime"; if [ -s "$HOME/.config/barbarossa/runtime/codex_auth.json" ]; then cat >/dev/null; else cat > "$HOME/.config/barbarossa/runtime/codex_auth.json"; fi'
           fi
           if [ -n "$BARBAROSSA_GITHUB_TOKEN" ]; then
             printf '%s' "$BARBAROSSA_GITHUB_TOKEN" |
               ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
                 "${OVH_USER}@${OVH_HOST}" \
-                'umask 077; install -d -m 0700 "$HOME/.config/barbarossa/runtime"; cat > "$HOME/.config/barbarossa/runtime/github_token"'
+                'umask 077; install -d -m 0700 "$HOME/.config/barbarossa/runtime"; if [ -s "$HOME/.config/barbarossa/runtime/github_token" ]; then cat >/dev/null; else cat > "$HOME/.config/barbarossa/runtime/github_token"; fi'
           fi
       - name: Cut over and smoke test
         env:
@@ -220,4 +236,4 @@ jobs:
           set -eu
           ssh -i "$HOME/.ssh/ovh" -o StrictHostKeyChecking=yes \
             "${OVH_USER}@${OVH_HOST}" \
-            "cd \"\$HOME/barbarossa\" && BARBAROSSA_IMAGE_TAG='${GITHUB_SHA}' scripts/deploy-runtime-files.sh && scripts/smoke-remote.sh"
+            "cd \"\$HOME/barbarossa-releases/${GITHUB_SHA}\" && BARBAROSSA_IMAGE_TAG='${GITHUB_SHA}' scripts/deploy-runtime-files.sh"

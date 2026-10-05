@@ -1,14 +1,14 @@
 FROM alpine:3.22@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce
 
-ARG SUBFINDER_SHA256=6529294788f56a20ed96a9b70e71f8f3c247f1d6104ba1e2c2e9e58d8a32c6cb
-ARG HTTPX_SHA256=54c6c91d61d3b82ba79f93633df04bb547f0c954d9d9b0fb8bcedf158f85ff2f
-ARG DNSX_SHA256=f58d93f511c1e1f653eac2ae1d44be8ea1ee8eba0d95825ab54ca2be6b9d703d
-ARG NUCLEI_SHA256=05357e07886d9670e9c54325ec8afd362d03610c87e2aa1455886ad3f7b58519
-ARG FFUF_SHA256=fc2c82736c14dcbea4daf3d3cf3878c1c4773008ba45c2bc0fceba7d17b40bb5
+ARG SUBFINDER_SHA256=1b7f9c608e9a5bd59e609a5e09710d63c5485e92d3d49dc2c16eb4fdbe10cb60
+ARG HTTPX_SHA256=9d8439e8b6c9aa7d1e2314817a392e00d5178da3af5652f7475f88868f418f76
+ARG DNSX_SHA256=438b964653056dd51dcfe614b1a16f8bced3cc48a1d27bc07cc6fdf2ef2a9533
+ARG NUCLEI_SHA256=ea63d4ae232808cd7c6bc00d0142428e231fab59dae01042246097d195835ab6
+ARG FFUF_SHA256=b2a3c725fcb9da175159682f54d6e9149f2905b00d84d155e7efc5d599975ceb
 ARG AMASS_SHA256=5e22b5f0239e7eb79439d60d43d3cd20dca2478588bc2242e91ab0c4f8fa40dd
 ARG NAABU_SHA256=018c4c9884dea971eda860435ede3021d1150732f34cfd245498c6726d8cab90
-ARG KATANA_SHA256=503754f1bd370c3ef287df6998e317baed2dd75bdd13ea64034f09b80ca393f3
-ARG TLSX_SHA256=6c4a0dff8473e954d3aa9b6c0cc9c68047cc7e2fb607fa94359f4ec55ef3f98c
+ARG KATANA_SHA256=fe1142d92f418549338ea46d67a472124878482e225d279e9a42700c75d76a4d
+ARG TLSX_SHA256=05628cec246e292e2f9afc6e7bc5de95aaa0fbe78fd556d5ad220b9f4702d364
 
 RUN apk add --no-cache \
     bash bind-tools build-base ca-certificates coreutils curl gcompat git \
@@ -21,31 +21,31 @@ RUN set -eux; \
     mkdir -p /tmp/tools; \
     cd /tmp/tools; \
     curl -fsSL \
-      "https://github.com/projectdiscovery/subfinder/releases/download/v2.14.0/subfinder_2.14.0_linux_amd64.zip" \
+      "https://github.com/projectdiscovery/subfinder/releases/download/v2.16.0/subfinder_2.16.0_linux_amd64.zip" \
       -o subfinder.zip; \
     echo "$SUBFINDER_SHA256  subfinder.zip" | sha256sum -c -; \
     unzip -oq subfinder.zip; \
     mv subfinder /usr/local/bin/; \
     curl -fsSL \
-      "https://github.com/projectdiscovery/httpx/releases/download/v1.9.0/httpx_1.9.0_linux_amd64.zip" \
+      "https://github.com/projectdiscovery/httpx/releases/download/v1.12.0/httpx_1.12.0_linux_amd64.zip" \
       -o httpx.zip; \
     echo "$HTTPX_SHA256  httpx.zip" | sha256sum -c -; \
     unzip -oq httpx.zip; \
     mv httpx /usr/local/bin/; \
     curl -fsSL \
-      "https://github.com/projectdiscovery/dnsx/releases/download/v1.2.3/dnsx_1.2.3_linux_amd64.zip" \
+      "https://github.com/projectdiscovery/dnsx/releases/download/v1.3.1/dnsx_1.3.1_linux_amd64.zip" \
       -o dnsx.zip; \
     echo "$DNSX_SHA256  dnsx.zip" | sha256sum -c -; \
     unzip -oq dnsx.zip; \
     mv dnsx /usr/local/bin/; \
     curl -fsSL \
-      "https://github.com/projectdiscovery/nuclei/releases/download/v3.9.0/nuclei_3.9.0_linux_amd64.zip" \
+      "https://github.com/projectdiscovery/nuclei/releases/download/v3.11.1/nuclei_3.11.1_linux_amd64.zip" \
       -o nuclei.zip; \
     echo "$NUCLEI_SHA256  nuclei.zip" | sha256sum -c -; \
     unzip -oq nuclei.zip; \
     mv nuclei /usr/local/bin/; \
     curl -fsSL \
-      "https://github.com/ffuf/ffuf/releases/download/v2.1.0/ffuf_2.1.0_linux_amd64.tar.gz" \
+      "https://github.com/ffuf/ffuf/releases/download/v2.3.0/ffuf_2.3.0_linux_amd64.tar.gz" \
       -o ffuf.tar.gz; \
     echo "$FFUF_SHA256  ffuf.tar.gz" | sha256sum -c -; \
     tar xzf ffuf.tar.gz; \
@@ -63,13 +63,13 @@ RUN set -eux; \
     unzip -oq naabu.zip; \
     mv naabu /usr/local/bin/; \
     curl -fsSL \
-      "https://github.com/projectdiscovery/katana/releases/download/v1.6.1/katana_1.6.1_linux_amd64.zip" \
+      "https://github.com/projectdiscovery/katana/releases/download/v1.7.0/katana_1.7.0_linux_amd64.zip" \
       -o katana.zip; \
     echo "$KATANA_SHA256  katana.zip" | sha256sum -c -; \
     unzip -oq katana.zip; \
     mv katana /usr/local/bin/; \
     curl -fsSL \
-      "https://github.com/projectdiscovery/tlsx/releases/download/v1.2.2/tlsx_1.2.2_linux_amd64.zip" \
+      "https://github.com/projectdiscovery/tlsx/releases/download/v1.4.0/tlsx_1.4.0_linux_amd64.zip" \
       -o tlsx.zip; \
     echo "$TLSX_SHA256  tlsx.zip" | sha256sum -c -; \
     unzip -oq tlsx.zip; \

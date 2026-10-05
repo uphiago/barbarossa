@@ -100,6 +100,12 @@ async def enrich_message_with_codex(
 
 
 def main() -> int:
+    from hermes_cli import model_normalize
+
+    # The pinned Hermes image predates this native DeepSeek model ID and
+    # otherwise silently rewrites it to the legacy deepseek-v4-flash alias.
+    model_normalize._DEEPSEEK_CANONICAL_MODELS |= {"deepseek-flash"}
+
     from gateway.run import GatewayRunner
     from hermes_cli.main import main as hermes_main
 

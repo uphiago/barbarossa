@@ -22,7 +22,7 @@ include_only = [
 ]
 
 [shell_environment_policy.set]
-PATH = "/usr/local/bin:/usr/bin:/bin"
+PATH = "/home/forge/.local/bin:/usr/local/bin:/usr/bin:/bin"
 HOME = "/home/forge"
 CODEX_HOME = "/home/forge/.codex"
 GH_CONFIG_DIR = "/workspace/.config/gh"
