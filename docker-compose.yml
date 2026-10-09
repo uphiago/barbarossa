@@ -117,7 +117,13 @@ services:
 
   hermes:
     <<: *service-defaults
-    image: nousresearch/hermes-agent@sha256:32d095e84190ae7266afbb361579e6921f2c633e899f5eacfb88111b9c851a22
+    # v0.21.6 (2026-10-08) is intentionally held back: its image moves to
+    # Python 3.14 and PM-managed dependency environments whose activated env
+    # lacks the `mcp` SDK (extra `computer-use`), breaking the router MCP
+    # integration; provisioning that extra copies the whole workspace into
+    # /opt/data and does not fit the VPS. Revisit with a clean HERMES_HOME
+    # migration and more disk headroom.
+    image: nousresearch/hermes-agent@sha256:2fd023efbb8d3d2b0ce1a73d028b07370cff34f567cfe0e999553e8c327ea283
     hostname: hermes
     mem_limit: ${BARBAROSSA_HERMES_MEMORY:-1024m}
     pids_limit: ${BARBAROSSA_HERMES_PIDS:-256}
