@@ -67,7 +67,7 @@ assert all(
 )
 assert services["hermes"]["image"] == (
     "nousresearch/hermes-agent@sha256:"
-    "b3190406963c6b51ac955397ecef45346efaae9563ee305108f8eef0a77e267b"
+    "2fd023efbb8d3d2b0ce1a73d028b07370cff34f567cfe0e999553e8c327ea283"
 )
 volumes = compose["volumes"]
 assert {"forge-host-keys", "recon-host-keys"} <= set(volumes)
@@ -118,7 +118,9 @@ assert "StrictHostKeyChecking=yes" in workflow_text
 assert "scripts/deploy-runtime-files.sh" in workflow_text
 assert "scripts/smoke-remote.sh" in Path("scripts/deploy-runtime-files.sh").read_text()
 assert "BARBAROSSA_GITHUB_TOKEN" in workflow_text
-assert "pull_request:" in workflow_text
+# Deploy-only triggers: no PR verification runs.
+assert "pull_request:" not in workflow_text
+assert "workflow_dispatch:" in workflow_text
 assert '      - "v*"' in workflow_text
 assert "branches: [main]" not in workflow_text
 assert workflow_text.count(

@@ -166,15 +166,22 @@ if [ "$mode" = update ]; then
   rollback="$(mktemp -d "$runtime/rollback/release.XXXXXXXX")"
   cp -p "$compose_env" "$rollback/compose.env"
   cp -p "$router_bundle" "$rollback/barbarossa-router.pex"
+  # Mirror the release directory layout so a later update can snapshot this
+  # rollback release using the same dirname .env lookup.
+  ln -sfn "$root/.env" "$rollback/.env"
   previous_container="$(compose_with_env "$compose_env" ps --all --quiet hermes)"
   previous_files="$("$docker" inspect --format '{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$previous_container")"
   previous_compose="${previous_files%%,*}"
   [ -f "$previous_compose" ] || { printf 'previous Compose source is unavailable\n' >&2; exit 1; }
   # Resolved private snapshot retains the previous source mounts and settings.
   # The old release directory must remain present for those bind mounts.
+  previous_env="$(dirname "$previous_compose")/.env"
+  # Rollback release dirs created before this guard carry no .env symlink; fall
+  # back to this release's env instead of failing the snapshot.
+  [ -f "$previous_env" ] || previous_env="$root/.env"
   (
     unset BARBAROSSA_IMAGE_TAG BARBAROSSA_RUNTIME_DIR
-    "$docker" compose --env-file "$(dirname "$previous_compose")/.env" \
+    "$docker" compose --env-file "$previous_env" \
       --env-file "$compose_env" -f "$previous_compose" config --format json
   ) > "$rollback/compose.json"
   [ -s "$rollback/compose.json" ] || { printf 'previous Compose snapshot is empty\n' >&2; exit 1; }

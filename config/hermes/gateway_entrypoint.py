@@ -102,13 +102,19 @@ async def enrich_message_with_codex(
 def main() -> int:
     from hermes_cli import model_normalize
 
-    # The pinned Hermes image predates this native DeepSeek model ID and
-    # otherwise silently rewrites it to the legacy deepseek-v4-flash alias.
-    model_normalize._DEEPSEEK_CANONICAL_MODELS |= {"deepseek-flash"}
+    # Older pinned builds rewrote the vendor's native `deepseek-flash` id through
+    # a shape-based allow-list; registering the id kept the configured model
+    # intact. v0.21.5 passes unknown DeepSeek ids through untouched, so the hook
+    # is kept only for older images (e.g. an in-place rollback).
+    canonical_models = getattr(model_normalize, "_DEEPSEEK_CANONICAL_MODELS", None)
+    if isinstance(canonical_models, set):
+        canonical_models.add("deepseek-flash")
 
     from gateway.run import GatewayRunner
     from hermes_cli.main import main as hermes_main
 
+    # GatewayInboundMixin calls this hook whenever image_input_mode resolves to
+    # text; Codex staging replaces the built-in vision_analyze pre-analysis.
     GatewayRunner._enrich_message_with_vision = enrich_message_with_codex
     return hermes_main()
 

@@ -175,7 +175,7 @@ def test_download_failure_keeps_live_files_and_services_untouched(deployment, fa
 
 
 def test_upgrade_preserves_credentials_state_and_rollback_release(deployment):
-    _, runtime, _ = deployment
+    root, runtime, _ = deployment
     original = snapshot(runtime)
     result, records = execute(deployment)
     assert result.returncode == 0, result.stderr
@@ -189,6 +189,8 @@ def test_upgrade_preserves_credentials_state_and_rollback_release(deployment):
     release = releases[0]
     assert (release / "compose.env").read_bytes() == original["compose.env"]
     assert (release / "barbarossa-router.pex").read_bytes() == original["barbarossa-router.pex"]
+    assert (release / ".env").is_symlink()
+    assert os.readlink(release / ".env") == str(root / ".env")
     assert (release / "images.yml").is_file()
     tags = [r for r in records if r["args"][:2] == ["image", "tag"]]
     assert len(tags) == 3
@@ -204,6 +206,17 @@ def test_upgrade_preserves_credentials_state_and_rollback_release(deployment):
     assert all(r["tag"] == "candidate" for r in startup(records))
     assert "--force-recreate" in startup(records)[-1]["command"]
     assert (release.stat().st_mode & 0o777) == 0o700
+
+
+def test_update_snapshot_falls_back_when_previous_dir_lacks_dotenv(deployment):
+    _, runtime, env = deployment
+    stale = runtime / "rollback" / "release.RGHddOpy"
+    stale.mkdir(parents=True)
+    (stale / "compose.json").write_text("{}\n")
+    env["FAKE_PREVIOUS_COMPOSE"] = str(stale / "compose.json")
+    result, records = execute(deployment)
+    assert result.returncode == 0, result.stderr
+    assert startup(records)
 
 
 @pytest.mark.parametrize("failure", ["worker-start", "hermes-start", "host-key", "smoke"])

@@ -5,7 +5,6 @@ on:
   push:
     tags:
       - "v*"
-  pull_request:
 
 permissions:
   contents: read
@@ -30,7 +29,7 @@ jobs:
           python-version: "3.13"
       - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
         with:
-          version: "0.12.13"
+          version: "0.12.24"
           enable-cache: true
       - name: Test router
         working-directory: router
@@ -77,7 +76,7 @@ jobs:
           python-version: "3.13"
       - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
         with:
-          version: "0.12.13"
+          version: "0.12.24"
           enable-cache: true
       - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4.5.1
