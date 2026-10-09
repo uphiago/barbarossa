@@ -12,7 +12,7 @@ build_forge() {
   fi
 
   docker run --rm --entrypoint codex "$forge_image" --version |
-    grep -F 'codex-cli 0.160.0'
+    grep -F 'codex-cli 0.162.0'
   docker run --rm --entrypoint id "$forge_image" -u forge |
     grep -Fx '10001'
   docker run --rm --entrypoint test "$forge_image" \
@@ -29,9 +29,9 @@ build_forge() {
       set -eu
       node --version | grep -F v24.21.0
       npm --version | grep -Fx 12.2.0
-      vercel --version 2>&1 | grep -F 62.2.0
-      supabase --version | grep -Fx 2.119.0
-      uv --version | grep -F 0.12.23
+      vercel --version 2>&1 | grep -F 63.1.0
+      supabase --version | grep -Fx 2.120.0
+      uv --version | grep -F 0.12.24
       specify --help >/dev/null
     '
   docker run --rm --user forge -e HOME=/home/forge \
@@ -53,7 +53,7 @@ build_recon() {
     'command -v nmap && command -v subfinder && command -v torsocks'
   docker run --rm --user recon -e HOME=/home/recon \
     --entrypoint subfinder "$recon_image" -version 2>&1 |
-    grep -F 'Current Version: v2.16.0'
+    grep -F 'Current Version: v2.17.0'
   docker run --rm --user recon --entrypoint cat "$recon_image" \
     /home/recon/.config/subfinder/provider-config.yaml |
     grep -Fx '{}'
