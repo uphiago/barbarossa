@@ -5,7 +5,39 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-import yaml
+try:
+    import yaml  # PyYAML: dev/CI and older pinned images.
+except ModuleNotFoundError:  # Hermes >= 0.21.6 images ship ruamel.yaml only.
+    from io import StringIO
+
+    from ruamel.yaml import YAML
+
+    class _SafeRuamelYaml:
+        """Minimal PyYAML-compatible facade over ruamel.yaml safe mode."""
+
+        def __init__(self) -> None:
+            self._yaml = YAML(typ="safe")
+            self._yaml.default_flow_style = False
+            self._yaml.allow_unicode = False
+
+        def safe_load(self, text):
+            return self._yaml.load(text)
+
+        def safe_dump(
+            self,
+            data,
+            *,
+            allow_unicode: bool = False,
+            default_flow_style: bool = False,
+            sort_keys: bool = False,
+        ) -> str:
+            self._yaml.allow_unicode = allow_unicode
+            self._yaml.default_flow_style = default_flow_style
+            stream = StringIO()
+            self._yaml.dump(data, stream)
+            return stream.getvalue()
+
+    yaml = _SafeRuamelYaml()
 
 CONFIG_PATH = Path("/opt/data/config.yaml")
 CONTEXT_ROOT = Path("/opt/barbarossa/context")
