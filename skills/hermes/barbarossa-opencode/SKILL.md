@@ -17,9 +17,12 @@ Forge tool. Pass only staged absolute paths to the router.
   for most work, `max` for audits and hard reviews. Codex profiles do not
   apply to this tool.
 - For large fan-outs, expect waves of ten concurrent subagents (~1–2 min per
-  wave; 64 subagents measured ≈ 11 min). The free tier can throttle after heavy
-  use (`Rate limit exceeded`): treat it as transient and retry after a few
-  minutes, or fall back per the free-tier bullet below.
+  wave; 64 subagents measured ≈ 11 min). The free tier throttles after heavy
+  use (`Error: Rate limit exceeded. Please try again later.`; the job dies in
+  seconds). It is provider-side and may stay closed for hours after intense
+  use: retry later with sane spacing (minutes to tens of minutes), do not spam,
+  never weaken or bypass a verification gate to work around it, and fall back
+  per the free-tier bullet below when time-sensitive.
 - Dispatch prompts for parallel work must require blocking subagents (never
   background) and that the job ends only after `outputs/final.md` exists. A
   `succeeded` job with no `outputs/final.md` artifact is a failed dispatch —

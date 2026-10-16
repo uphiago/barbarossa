@@ -99,3 +99,15 @@ Evidência (job dirs retidos em `/workspace/jobs`): N=10
   lane): paralelismo = subagentes em ondas dentro de um job.
 - Custo residual: ~600 B por shard; a retenção histórica de jobs estava em
   ~315 MB no workspace ao fim dos testes.
+
+## Atualização (pós-teste): instâncias cruas vs sessões de subagente
+
+Medições posteriores (canhão tora, `scripts/forge-ceiling-probe.sh`) mostram que
+os números acima medem **sessões dentro de um orchestrator** (um processo bun;
+10 concorrentes ≈ 550–666 MiB no total). Para **instâncias cruas** de
+`opencode run` — processos independentes, fora da lane — o custo por unidade é
+~288 MiB anon + ~21 PIDs: a parede de memória do Forge (1408 MiB) chega com
+**~4–5 instâncias**, bem antes do que a extrapolação por sessão sugere. Page
+cache (~268 MiB) é reclamável e não conta para OOM. Detalhes, receitas de
+medição e o playbook de retry do free tier:
+`docs/2026-10-16-opencode-free-tier-ops.md`.
