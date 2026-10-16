@@ -68,3 +68,7 @@ rotação deliberada via arquivo/secret continua funcionando.
 - Após instalar a credencial fresca (`last_refresh: 2026-10-13`) e sincronizar
   o container: probe `codex exec --strict-config ...` como usuário `forge`
   retornou `BARBAROSSA_CODEX_OK`; host e volume com o mesmo hash (sem rotação).
+- Redeploy `65b9af02` (2026-10-16): smoke completo verde (`verified
+  code.delegate` ×2) com a credencial estável — mesmo hash (`ae3687…`) no
+  volume do container, no arquivo do host e no secret `CODEX_AUTH_JSON_B64`
+  (atualizado após o deploy).
