@@ -236,6 +236,23 @@ grep -Fq 'code_opencode' skills/hermes/barbarossa-opencode/SKILL.md
 grep -Fq 'code.opencode' scripts/smoke-remote.sh
 grep -Fq 'code.opencode' router/src/barbarossa_router/models.py
 grep -Fq 'stage_opencode_config' containers/shared/worker-rpc.py
+grep -Fq '"share": "disabled"' config/opencode/opencode.jsonc
+# OpenCode v2 permission rules act on tool names (`edit`, `shell`, `subagent`);
+# the v1 vocabulary (`bash`, `task`) is inert in agent frontmatter.
+grep -Fq 'action: subagent' config/opencode/agents/orchestrator.md
+grep -Fq 'action: shell' config/opencode/agents/reviewer.md
+if grep -rqE 'action: (bash|task)$' config/opencode/agents/; then
+  printf 'inert OpenCode permission action found\n' >&2
+  exit 1
+fi
+grep -Fq 'insufficient free space' scripts/deploy-runtime-files.sh
+grep -Fq 'DockerRootDir' scripts/deploy-runtime-files.sh
+grep -Fq 'BARBAROSSA_MIN_FREE_KB' scripts/deploy-runtime-files.sh
+grep -Fq 'refusing to prune' scripts/prune-rollback-images.sh
+if grep -Fq 'prune-rollback-images' scripts/deploy-runtime-files.sh; then
+  printf 'prune helper must stay out of the deploy path\n' >&2
+  exit 1
+fi
 grep -Fq 'exec /usr/local/bin/worker-entrypoint "$@" -o "$session_environment"' \
   containers/forge/forge-entrypoint.sh
 grep -Fq 'router/dist/' .gitignore
@@ -294,5 +311,76 @@ if grep -R -Eiq '\b(charlie|oscar|papa)\b' \
   printf 'legacy worker name remains in active infrastructure or docs\n' >&2
   exit 1
 fi
+
+# Prune helper drill: keeps the newest rollback release, removes stale release
+# directories and the image tags that only they reference (docker is mocked;
+# no daemon is involved).
+(
+  set -eu
+  drill="$(mktemp -d)"
+  trap 'rm -rf "$drill"' EXIT HUP INT TERM
+  mkdir -p "$drill/bin" "$drill/runtime/rollback/release.AAA" \
+    "$drill/runtime/rollback/release.BBB" "$drill/runtime/rollback/release.CCC"
+  for release in AAA:2026-10-01 BBB:2026-10-08 CCC:2026-10-16; do
+    name="${release%:*}"
+    printf 'services:\n  forge:\n    image: barbarossa-rollback-forge:release.%s\n' \
+      "$name" > "$drill/runtime/rollback/release.$name/images.yml"
+    touch -d "${release#*:} 10:00" "$drill/runtime/rollback/release.$name"
+  done
+  cat > "$drill/bin/docker" <<'FAKE_DOCKER'
+#!/bin/sh
+state="${FAKE_STATE:?}"
+if [ "$1" = "image" ] && [ "$2" = "inspect" ]; then
+  ref="$5"
+  id="$(awk -v r="$ref" '$2 == r { print $1 }' "$state")"
+  [ -n "$id" ] || exit 1
+  printf '%s\n' "$id"
+  exit 0
+fi
+case "$1" in
+  images) awk '{ print $1, $2 }' "$state" ;;
+  rmi)
+    shift
+    for t in "$@"; do
+      grep -v " $t\$" "$state" > "$state.new" || true
+      mv "$state.new" "$state"
+    done ;;
+  info) printf '/\n' ;;
+  *) exit 1 ;;
+esac
+FAKE_DOCKER
+  chmod +x "$drill/bin/docker"
+  cat > "$drill/state" <<'FAKE_STATE'
+sha256:aaa barbarossa-rollback-forge:release.AAA
+sha256:aaa ghcr.io/uphiago/barbarossa-forge:oldsha
+sha256:bbb barbarossa-rollback-forge:release.BBB
+sha256:ccc barbarossa-rollback-forge:release.CCC
+sha256:ccc unrelated-org/img:keep
+FAKE_STATE
+  touch "$drill/runtime/.deploy.lock"
+  if FAKE_STATE="$drill/state" DOCKER="$drill/bin/docker" \
+    BARBAROSSA_RUNTIME_DIR="$drill/runtime" \
+    sh scripts/prune-rollback-images.sh >/dev/null 2>&1; then
+    printf 'prune helper ignored the deploy lock\n' >&2
+    exit 1
+  fi
+  rm -f "$drill/runtime/.deploy.lock"
+  FAKE_STATE="$drill/state" DOCKER="$drill/bin/docker" \
+    BARBAROSSA_RUNTIME_DIR="$drill/runtime" \
+    sh scripts/prune-rollback-images.sh >/dev/null
+  test -d "$drill/runtime/rollback/release.AAA"
+  FAKE_STATE="$drill/state" DOCKER="$drill/bin/docker" \
+    BARBAROSSA_RUNTIME_DIR="$drill/runtime" \
+    sh scripts/prune-rollback-images.sh --apply >/dev/null
+  test ! -d "$drill/runtime/rollback/release.AAA"
+  test ! -d "$drill/runtime/rollback/release.BBB"
+  test -d "$drill/runtime/rollback/release.CCC"
+  grep -Fq 'release.CCC' "$drill/state"
+  grep -Fq 'unrelated-org/img:keep' "$drill/state"
+  if grep -Eq 'release\.(AAA|BBB)|oldsha' "$drill/state"; then
+    printf 'prune helper leaked stale tags\n' >&2
+    exit 1
+  fi
+)
 
 printf 'all infra regression assertions passed\n'

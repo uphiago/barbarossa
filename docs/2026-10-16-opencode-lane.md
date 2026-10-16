@@ -3,9 +3,8 @@
 > Registro para agentes: descreve o que foi implementado, os contratos expostos
 > ao Hermes e como validar, aplicar e reverter esta release.
 
-**Status:** implementado e validado localmente em 2026-10-16; aplicação em
-produção pela `main` via workflow `build-deploy.yml` (dispatch manual), com
-rollback automático no deploy.
+**Status:** em produção desde 2026-10-16 (release `65b9af02`; smoke completo
+com `verified code.opencode` ×2, incluindo o subagente `explorer`).
 
 ## Objetivo
 
@@ -33,6 +32,27 @@ CLI dentro do job do Forge, o uso é legítimo, anônimo e sem credencial nova.
 | Artefato combinado | `outputs/final.md` (ler somente via `job_result`) |
 | Segredos | Nenhum novo; `GH_TOKEN` entra no job como nas demais lanes de código |
 
+### Permissões e isolamento (verificado empiricamente, v2.0.31)
+
+- As regras `permissions` no frontmatter dos agentes agem sobre **nomes de
+  tool** do OpenCode v2: `edit` (remove `write`+`edit`), `shell`, `subagent`
+  etc. O vocabulário dos docs v1 (`bash`, `task`) é **inerte** aqui — validado
+  por A/B com agentes-sonda em 2026-10-16.
+- Mapa efetivo: `orchestrator` (`subagent` allow); `explorer` e `tester`
+  (deny `edit` + `subagent`); `implementer` (deny `subagent`); `reviewer`
+  (deny `edit` + `shell` + `subagent` — somente leitura efetivo).
+- `share: "disabled"` no `opencode.jsonc`: sessões nunca são compartilháveis.
+  Estado de sessão vive no scratch do job (`XDG_DATA_HOME`/`XDG_STATE_HOME`),
+  nada no home persistente; `username` (identidade de telemetria) não é
+  definido. Não há kill-switch global de telemetria documentado.
+- Catálogo free observado em 2026-10-16 (`opencode models`): o DeepSeek em uso
+  mais `glm-5.3-flash-free`, `nemotron-3-ultra-free`,
+  `nemotron-3.5-lightning-free`, `nemotron-3.5-super-vl-free`,
+  `mimo-v2.6-flash-free`, `longcat-2.5-preview-free`, `beam-free`,
+  `ll-alpha-free`, `muse-spark-1.3-contributor-free`, `space-bunny-free`.
+  Trocar de modelo é decisão de deploy (`BARBAROSSA_OPENCODE_MODEL`), não de
+  job.
+
 ## Mudanças por arquivo
 
 - Router: `models.py` (capability, lane, política 2700s, `opencode_variant`),
@@ -47,14 +67,19 @@ CLI dentro do job do Forge, o uso é legítimo, anônimo e sem credencial nova.
   `opencode --version`, COPY de `config/opencode`),
   `containers/forge/forge-entrypoint.sh` (valida e propaga
   `BARBAROSSA_OPENCODE_MODEL`/`_VARIANT`).
-- Config nova: `config/opencode/opencode.jsonc` + `config/opencode/agents/*.md`.
+- Config nova: `config/opencode/opencode.jsonc` (`share: disabled`, `update:
+  disable`, `snapshots: false`) + `config/opencode/agents/*.md`.
+- Scripts: `scripts/deploy-runtime-files.sh` (preflight de espaço ≥4 GiB antes
+  do pull), `scripts/prune-rollback-images.sh` (coleta operacional de rollbacks
+  antigos; ver `docs/2026-10-16-deploy-disk-incident.md`).
 - Compose: env vars com defaults, bind-ro `./config/opencode`, mount da skill.
 - Docs/skills: `AGENTS.md`, `README.md`, `WORKERS.md`,
   `skills/hermes/barbarossa-routing/SKILL.md`,
   `skills/hermes/barbarossa-opencode/SKILL.md`.
 - Testes: suites do router, `tests/test-worker-rpc.py`,
   `tests/container-integration.sh` (`opencode --version` + config na imagem),
-  `tests/infra-regression.sh`, `scripts/smoke-remote.sh` (2 checagens novas).
+  `tests/infra-regression.sh` (asserts de config/permissões + drill do helper
+  de prune com docker mockado), `scripts/smoke-remote.sh` (2 checagens novas).
 
 ## Evidência local (2026-10-16)
 
@@ -64,8 +89,21 @@ CLI dentro do job do Forge, o uso é legítimo, anônimo e sem credencial nova.
 - `@opencode/cli@2.0.31` sob npm 12.2.0 com `--allow-scripts=@opencode/cli`:
   instala, pós-instalação executa, `opencode --version` = `2.0.31`; poda dos
   binários não usados levou o install de 809 MB para 202 MB.
-- Host de produção: x86_64 com avx2; espaço em disco suficiente para a release
-  nova com rollback retido.
+- Permissões confirmadas por sonda: `edit`/`shell`/`subagent` removem os tools
+  correspondentes; drill do helper de prune (docker mockado) cobre lock,
+  dry-run e apply sem tocar a release retida nem imagens de terceiros.
+
+## Evidência em produção (2026-10-16)
+
+- Host x86_64 com avx2. Deploy `65b9af02` verde; smoke no host:
+  `verified runtime.execute`, `verified code.delegate` ×2, `verified
+  code.opencode` ×2 (o segundo lança o subagente `explorer`),
+  `media.image.inspect`/`generate` e checagens de rede.
+- Rollback retido: `~/.config/barbarossa/runtime/rollback/release.YVc6iCSS`.
+- Credencial Codex estável após o smoke (mesmo hash no volume, no host e no
+  secret) — ver `docs/2026-10-16-codex-auth-persistence.md`.
+- O primeiro deploy (`a379e01`) caiu por credencial Codex expirada (não pela
+  lane) e o rollback automático atuou como projetado.
 
 ## Aplicar e reverter
 
@@ -83,5 +121,11 @@ CLI dentro do job do Forge, o uso é legítimo, anônimo e sem credencial nova.
   limitado por política de prompt + `steps` dos agentes.
 - Memória do Forge (1408m) é compartilhada entre runtime/Codex/OpenCode; sob
   carga simultânea, subir `BARBAROSSA_FORGE_MEMORY` no `.env`.
+- Disco do host: cada release retém ≈3 GiB de rollback; o deploy agora falha
+  cedo com menos de 4 GiB livres — usar
+  `scripts/prune-rollback-images.sh --apply` quando o preflight acusar
+  (ver `docs/2026-10-16-deploy-disk-incident.md`).
 - Se o free tier sair do ar, o smoke do deploy falha e reverte: tratar como
   indisponibilidade do provedor, não como regressão do Barbarossa.
+- Follow-up: login Codex dedicado do cluster (`CODEX_HOME` separado) para não
+  compartilhar a cadeia de refresh com o workstation.

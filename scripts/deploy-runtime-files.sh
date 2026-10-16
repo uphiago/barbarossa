@@ -149,6 +149,27 @@ BARBAROSSA_RUNTIME_DIR='$runtime'
 EOF_ENV
 
 # Download and extract everything before changing runtime files or services.
+# Retaining the previous release needs headroom on the Docker root filesystem;
+# fail before touching runtime files when the disk cannot fit a new generation.
+# The 4 GiB default covers the common single-image delta; override with
+# BARBAROSSA_MIN_FREE_KB on hosts with different sizing.
+min_free_kb="${BARBAROSSA_MIN_FREE_KB:-4194304}"
+case "$min_free_kb" in
+  ''|*[!0-9]*) printf 'BARBAROSSA_MIN_FREE_KB is invalid\n' >&2; exit 1 ;;
+esac
+docker_root="$("$docker" info --format '{{.DockerRootDir}}' 2>/dev/null || printf '/')"
+free_kb="$(df -Pk "$docker_root" 2>/dev/null | awk 'NR == 2 { print $4 }')"
+case "$free_kb" in
+  ''|*[!0-9]*)
+    printf 'cannot determine free space on %s\n' "$docker_root" >&2
+    exit 1
+    ;;
+esac
+if [ "$free_kb" -lt "$min_free_kb" ]; then
+  printf 'insufficient free space on %s: %s KiB available, need at least %s KiB; prune stale rollback releases first (docs/2026-10-16-deploy-disk-incident.md)\n' \
+    "$docker_root" "$free_kb" "$min_free_kb" >&2
+  exit 1
+fi
 compose_with_env "$stage/compose.env" pull forge recon hermes
 "$docker" pull "ghcr.io/uphiago/barbarossa-router-bundle:$tag"
 bundle_container="barbarossa-router-bundle-${stage##*.}"

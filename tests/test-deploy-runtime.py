@@ -67,6 +67,8 @@ elif args[0] == "inspect":
         print(os.environ["FAKE_PREVIOUS_COMPOSE"])
     else:
         print("sha256:" + args[-1].removeprefix("container-") + "-old")
+elif args[0] == "info":
+    print(os.environ.get("FAKE_DOCKER_ROOT", "/"))
 elif compose_args:
     cmd = compose_args[0]
     if cmd == "config":
@@ -139,6 +141,8 @@ def deployment(tmp_path):
         "FAKE_LOG": str(tmp_path / "docker.jsonl"),
         "BARBAROSSA_RUNTIME_DIR": str(runtime), "BARBAROSSA_IMAGE_TAG": "candidate",
         "FAKE_PREVIOUS_COMPOSE": str(root / "docker-compose.yml"),
+        # Disk headroom is asserted separately; keep the upgrade path hermetic.
+        "BARBAROSSA_MIN_FREE_KB": "0",
     }
     return root, runtime, env
 
@@ -172,6 +176,21 @@ def test_download_failure_keeps_live_files_and_services_untouched(deployment, fa
     assert not startup(records)
     assert not any(r["command"][:1] in (["down"], ["stop"]) for r in records)
     assert not any(r["args"][:2] == ["volume", "rm"] for r in records)
+
+
+def test_low_disk_aborts_before_mutating_runtime(deployment):
+    _, runtime, env = deployment
+    env["BARBAROSSA_MIN_FREE_KB"] = "9007199254740991"
+    original = snapshot(runtime)
+    result, records = execute(deployment)
+    assert result.returncode != 0
+    assert "insufficient free space" in result.stderr
+    assert snapshot(runtime) == original
+    assert not startup(records)
+    assert not any(
+        r["args"][0] in ("pull", "cp") or r["command"][:1] == ["pull"]
+        for r in records
+    )
 
 
 def test_upgrade_preserves_credentials_state_and_rollback_release(deployment):
