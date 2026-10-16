@@ -222,7 +222,13 @@ grep -Fq \
 grep -Fq \
   'auth_target="${CODEX_AUTH_JSON_FILE:-/home/forge/.codex/auth.json}"' \
   containers/forge/forge-entrypoint.sh
-grep -Fq 'refresh_is_newer' containers/forge/forge-entrypoint.sh
+grep -Fq \
+  'if python3 /usr/local/bin/codex-auth-sync "$auth_source" "$auth_target"; then' \
+  containers/forge/forge-entrypoint.sh
+grep -Fq 'CODEX_AUTH_FORCE_INSTALL=1' containers/forge/forge-entrypoint.sh
+grep -Fq \
+  'COPY containers/forge/codex-auth-sync.py /usr/local/bin/codex-auth-sync' \
+  containers/forge/Dockerfile
 grep -Fq 'last_refresh' containers/forge/forge-entrypoint.sh
 grep -Fq 'session_environment="SetEnv=\' \
   containers/forge/forge-entrypoint.sh
@@ -292,6 +298,18 @@ test ! -e workers
 if grep -R -Eiq '\b(charlie|oscar|papa)\b' \
   docker-compose.yml README.md WORKERS.md AGENTS.md setup.sh; then
   printf 'legacy worker name remains in active infrastructure or docs\n' >&2
+  exit 1
+fi
+
+# The Codex credential install policy is pure logic with its own matrix; run it
+# here so the gate executes it (the workflow's pytest invocation lists files
+# explicitly and this test is not part of that list).
+if command -v uv >/dev/null 2>&1; then
+  uv run --quiet --with pytest==9.1.1 pytest tests/test-codex-auth-sync.py -q
+elif command -v pytest >/dev/null 2>&1; then
+  pytest tests/test-codex-auth-sync.py -q
+else
+  printf 'pytest is unavailable: the codex-auth-sync matrix cannot run\n' >&2
   exit 1
 fi
 

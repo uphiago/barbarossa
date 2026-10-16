@@ -651,7 +651,7 @@ def artifact_names(job: JobPaths) -> list[str]:
 
 
 def stage_opencode_config(config_home: Path) -> None:
-    shutil.copytree(OPENCODE_SHARE, config_home / "opencode")
+    shutil.copytree(OPENCODE_SHARE, config_home / "opencode", dirs_exist_ok=True)
 
 
 def run_job(job_id: str) -> int:

@@ -116,6 +116,8 @@ class JobRequest(BaseModel):
             raise ValueError("this capability requires exactly one input file")
         if self.capability == "media.image.generate" and self.input_paths:
             raise ValueError("media.image.generate does not accept an input file")
+        # Only the Codex lane takes a profile: matching "code.*" here would also
+        # admit code.opencode, which runs the OpenCode orchestrator instead.
         if self.codex_profile and not (
             self.capability == "code.delegate"
             or self.capability.startswith("media.image.")

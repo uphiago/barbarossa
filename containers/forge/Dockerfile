@@ -50,6 +50,7 @@ COPY containers/shared/worker-rpc.py /usr/local/bin/barbarossa-worker
 COPY containers/shared/worker-ssh-dispatch.sh /usr/local/bin/worker-ssh-dispatch
 COPY containers/shared/worker-entrypoint.sh /usr/local/bin/worker-entrypoint
 COPY containers/forge/forge-entrypoint.sh /usr/local/bin/forge-entrypoint
+COPY containers/forge/codex-auth-sync.py /usr/local/bin/codex-auth-sync
 COPY --chown=forge:forge config/codex/config.toml /home/forge/.codex/config.toml
 COPY --chown=forge:forge skills/codex/barbarossa-artifacts/SKILL.md \
   /home/forge/.codex/skills/barbarossa-artifacts/SKILL.md
@@ -65,6 +66,7 @@ RUN chmod 0755 \
       /usr/local/bin/worker-ssh-dispatch \
       /usr/local/bin/worker-entrypoint \
       /usr/local/bin/forge-entrypoint \
+      /usr/local/bin/codex-auth-sync \
     && chmod 0644 \
       /usr/local/share/barbarossa/codex/config.toml \
       /usr/local/share/barbarossa/codex/SKILL.md \

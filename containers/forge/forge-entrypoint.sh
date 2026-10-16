@@ -23,39 +23,18 @@ done
 
 auth_source="${CODEX_AUTH_SOURCE_FILE:-/run/secrets/codex_auth_json}"
 auth_target="${CODEX_AUTH_JSON_FILE:-/home/forge/.codex/auth.json}"
-# ChatGPT refresh tokens rotate server-side on use: the working copy inside
-# this container drifts ahead of the deployed credential. Install the source
-# only to bootstrap the volume, or when it is newer than the copy in place;
-# a used-up refresh token must never clobber a rotated copy.
-refresh_is_newer() (
-  python3 - "$auth_source" "$auth_target" <<'PY'
-import json
-import pathlib
-import sys
-
-
-def stamp(path: pathlib.Path) -> str:
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return ""
-    if not isinstance(value, dict):
-        return ""
-    return str(value.get("last_refresh", ""))
-
-
-source, target = (pathlib.Path(value) for value in sys.argv[1:3])
-if not target.exists():
-    raise SystemExit(0)
-source_stamp = stamp(source)
-raise SystemExit(0 if source_stamp and source_stamp > stamp(target) else 1)
-PY
-)
+# ChatGPT refresh tokens rotate server-side on use: the copy inside this
+# container drifts ahead of the deployed credential, so the source may not
+# simply overwrite it. codex-auth-sync.py owns that decision — bootstrap when
+# the target is absent, a strictly newer `last_refresh` otherwise, a file mtime
+# tiebreak when the stamps are equal or unusable (same-day rotation), and
+# CODEX_AUTH_FORCE_INSTALL=1 to force a deliberate rotation. Covered by
+# tests/test-codex-auth-sync.py.
 if [ -s "$auth_source" ]; then
   python3 -c \
     'import json,sys; value=json.load(open(sys.argv[1], encoding="utf-8")); assert isinstance(value, dict) and ("tokens" in value or "OPENAI_API_KEY" in value)' \
     "$auth_source"
-  if refresh_is_newer; then
+  if python3 /usr/local/bin/codex-auth-sync "$auth_source" "$auth_target"; then
     install -o forge -g forge -m 0600 \
       "$auth_source" "$auth_target"
   fi

@@ -10,6 +10,8 @@ worker/ssh-keys/
 id_rsa*
 id_ed25519*
 credentials*
+auth.json
+**/.codex/
 *.backup
 *.bak
 *.tar
