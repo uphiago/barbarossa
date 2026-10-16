@@ -40,6 +40,12 @@ build_forge() {
     --config 'model_reasoning_effort="high"' \
     --config 'agents.max_concurrent_threads_per_session=1' \
     --strict-config --help >/dev/null
+  docker run --rm --entrypoint opencode "$forge_image" --version |
+    grep -F '2.0.31'
+  docker run --rm --entrypoint python3 "$forge_image" -c \
+    'import json; json.load(open("/usr/local/share/barbarossa/opencode/opencode.jsonc"))'
+  docker run --rm --entrypoint test "$forge_image" \
+    -f /usr/local/share/barbarossa/opencode/agents/orchestrator.md
 }
 
 build_recon() {

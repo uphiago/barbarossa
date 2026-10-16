@@ -27,3 +27,11 @@ def codex_request() -> JobRequest:
         capability="code.delegate",
         prompt="Review the repository",
     )
+
+
+@pytest.fixture
+def opencode_request() -> JobRequest:
+    return JobRequest(
+        capability="code.opencode",
+        prompt="Draft the migration plan",
+    )

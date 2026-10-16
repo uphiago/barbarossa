@@ -74,7 +74,7 @@ class Scheduler:
 
     async def tick(self) -> None:
         async with self._tick_lock:
-            for lane in ("runtime", "codex", "recon"):
+            for lane in ("runtime", "codex", "opencode", "recon"):
                 typed_lane: Lane = lane
                 claimed = await self.store.claim_next(typed_lane)
                 if claimed is None:

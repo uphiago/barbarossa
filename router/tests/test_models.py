@@ -76,6 +76,43 @@ def test_image_generation_rejects_input_file() -> None:
         )
 
 
+def test_opencode_request_uses_opencode_lane() -> None:
+    request = JobRequest(capability="code.opencode", prompt="Draft the plan")
+
+    assert request.worker == "forge"
+    assert request.lane == "opencode"
+    assert request.route == "direct"
+    assert request.timeout_seconds == 2700
+
+
+def test_opencode_request_accepts_an_approved_variant() -> None:
+    request = JobRequest(
+        capability="code.opencode",
+        prompt="Draft the plan",
+        opencode_variant="max",
+    )
+
+    assert request.opencode_variant == "max"
+
+
+def test_opencode_variant_is_rejected_for_other_work() -> None:
+    with pytest.raises(ValidationError, match="OpenCode variants"):
+        JobRequest(
+            capability="code.delegate",
+            prompt="Review this repo",
+            opencode_variant="low",
+        )
+
+
+def test_codex_profile_is_rejected_for_opencode_work() -> None:
+    with pytest.raises(ValidationError, match="Codex profiles"):
+        JobRequest(
+            capability="code.opencode",
+            prompt="Draft the plan",
+            codex_profile="fast",
+        )
+
+
 def test_job_status_has_stable_machine_fields() -> None:
     status = JobStatus(
         job_id="job_runtime_01J00000000000000000000000",

@@ -527,3 +527,188 @@ def test_dispatcher_denies_arbitrary_commands() -> None:
 def test_rpc_rejects_unknown_action(worker_rpc: ModuleType) -> None:
     with pytest.raises(ValueError, match="unsupported action"):
         worker_rpc.handle_rpc({"action": "delete-everything"})
+
+
+def test_opencode_job_id_is_accepted(worker_rpc: ModuleType) -> None:
+    assert worker_rpc.validate_job_id(
+        "job_opencode_01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    ) == "job_opencode_01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+
+def test_opencode_command_pins_agent_model_and_variant(
+    worker_rpc: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("BARBAROSSA_OPENCODE_MODEL", "opencode/test-model")
+    monkeypatch.setenv("BARBAROSSA_OPENCODE_VARIANT", "low")
+    job = worker_rpc.workspace(
+        tmp_path, "job_opencode_01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    )
+
+    argv = worker_rpc.build_argv(
+        job,
+        {
+            "capability": "code.opencode",
+            "prompt": "review; touch /tmp/pwned",
+        },
+    )
+
+    assert argv == [
+        "opencode",
+        "run",
+        "--standalone",
+        "--auto",
+        "--agent",
+        "orchestrator",
+        "--model",
+        "opencode/test-model#low",
+        "review; touch /tmp/pwned",
+    ]
+
+
+def test_opencode_request_variant_overrides_the_environment(
+    worker_rpc: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.delenv("BARBAROSSA_OPENCODE_MODEL", raising=False)
+    monkeypatch.setenv("BARBAROSSA_OPENCODE_VARIANT", "low")
+    job = worker_rpc.workspace(
+        tmp_path, "job_opencode_01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    )
+
+    argv = worker_rpc.build_argv(
+        job,
+        {
+            "capability": "code.opencode",
+            "prompt": "audit",
+            "opencode_variant": "max",
+        },
+    )
+
+    assert argv[-2] == "opencode/deepseek-v4.1-flash-free#max"
+    assert argv[-1] == "audit"
+
+
+def test_opencode_variant_is_validated(
+    worker_rpc: ModuleType,
+    tmp_path: Path,
+) -> None:
+    job = worker_rpc.workspace(
+        tmp_path, "job_opencode_01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    )
+
+    with pytest.raises(ValueError, match="variant"):
+        worker_rpc.build_argv(
+            job,
+            {
+                "capability": "code.opencode",
+                "prompt": "audit",
+                "opencode_variant": "ultra",
+            },
+        )
+
+
+def test_opencode_model_is_validated(
+    worker_rpc: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("BARBAROSSA_OPENCODE_MODEL", "bad model name")
+    job = worker_rpc.workspace(
+        tmp_path, "job_opencode_01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    )
+
+    with pytest.raises(ValueError, match="BARBAROSSA_OPENCODE_MODEL"):
+        worker_rpc.build_argv(
+            job,
+            {
+                "capability": "code.opencode",
+                "prompt": "audit",
+            },
+        )
+
+
+def test_opencode_config_is_staged_into_the_scratch_config_home(
+    worker_rpc: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    share = tmp_path / "share"
+    (share / "agents").mkdir(parents=True)
+    (share / "opencode.jsonc").write_text("{}", encoding="utf-8")
+    (share / "agents" / "orchestrator.md").write_text(
+        "agent", encoding="utf-8"
+    )
+    monkeypatch.setattr(worker_rpc, "OPENCODE_SHARE", share)
+    config_home = tmp_path / "config"
+    config_home.mkdir()
+
+    worker_rpc.stage_opencode_config(config_home)
+
+    assert (config_home / "opencode" / "opencode.jsonc").read_text() == "{}"
+    assert (
+        config_home / "opencode" / "agents" / "orchestrator.md"
+    ).read_text() == "agent"
+
+
+def test_opencode_job_stages_config_and_isolated_xdg_roots(
+    worker_rpc: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(worker_rpc, "WORKSPACE_ROOT", tmp_path)
+    share = tmp_path / "share"
+    share.mkdir()
+    (share / "opencode.jsonc").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(worker_rpc, "OPENCODE_SHARE", share)
+    job_id = "job_opencode_01ARZ3NDEKTSV4RRFFQ69G5FAV"
+    job = worker_rpc.workspace(tmp_path, job_id)
+    job.inputs.mkdir(parents=True)
+    job.outputs.mkdir()
+    probe = (
+        "import json,os,pathlib;"
+        "print(json.dumps({"
+        "'config': pathlib.Path(os.environ['XDG_CONFIG_HOME'],"
+        " 'opencode','opencode.jsonc').is_file(),"
+        "'data': os.environ['XDG_DATA_HOME'],"
+        "'state': os.environ['XDG_STATE_HOME']}))"
+    )
+    monkeypatch.setattr(
+        worker_rpc,
+        "build_argv",
+        lambda job, request: ["python3", "-c", probe],
+    )
+    worker_rpc.atomic_json(
+        job.request,
+        {
+            "capability": "code.opencode",
+            "lane": "opencode",
+            "prompt": "audit",
+            "opencode_variant": "high",
+        },
+    )
+
+    assert worker_rpc.run_job(job_id) == 0
+    payload = json.loads(job.stdout.read_text(encoding="utf-8"))
+    assert payload["config"] is True
+    data_home = Path(payload["data"])
+    state_home = Path(payload["state"])
+    assert data_home.is_relative_to(tmp_path)
+    assert state_home.is_relative_to(tmp_path)
+    assert not data_home.exists()
+    assert not state_home.exists()
+
+
+def test_supervisor_environment_preserves_opencode_settings(
+    worker_rpc: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BARBAROSSA_OPENCODE_MODEL", "opencode/test-model")
+    monkeypatch.setenv("BARBAROSSA_OPENCODE_VARIANT", "max")
+
+    env = worker_rpc.supervisor_environment()
+
+    assert env["BARBAROSSA_OPENCODE_MODEL"] == "opencode/test-model"
+    assert env["BARBAROSSA_OPENCODE_VARIANT"] == "max"

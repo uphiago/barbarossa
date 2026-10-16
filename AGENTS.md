@@ -10,6 +10,7 @@ cluster.
 | Hermes | Planning, routing, context, native delegation | Configured main model |
 | Forge runtime lane | Shell, files, compilation | Non-root isolated job |
 | Forge Codex lane | Code, image understanding and generation | Configured Codex profile |
+| Forge OpenCode lane | Multi-agent engineering, up to ten parallel subagents | OpenCode with free DeepSeek (`deepseek-v4.1-flash-free`) |
 | Recon lane | Authorized network work, direct or explicit Tor | nmap, ProjectDiscovery tools, Tor |
 
 Forge and Recon do not share a Docker network. Hermes reaches each worker
@@ -29,6 +30,7 @@ request.
 
 - Generic execution: `runtime_execute`
 - Engineering: `code_delegate`
+- Multi-agent engineering (free DeepSeek via OpenCode): `code_opencode`
 - Image reading/generation/editing: `media_image_*`
 - Direct network work: `network_fetch` or `network_inspect`
 - Tor network work: `network_tor`, explicitly only

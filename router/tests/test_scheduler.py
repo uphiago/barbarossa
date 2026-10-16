@@ -66,6 +66,20 @@ async def test_one_job_per_lane_and_runtime_parallel_with_codex(
     assert statuses == {"running": 2, "queued": 1}
 
 
+async def test_opencode_lane_runs_parallel_with_codex(
+    store: JobStore,
+    codex_request: JobRequest,
+    opencode_request: JobRequest,
+) -> None:
+    scheduler, transport = await make_scheduler(store)
+    await scheduler.submit(codex_request)
+    await scheduler.submit(opencode_request)
+
+    await scheduler.tick()
+
+    assert transport.started_lanes == ["codex", "opencode"]
+
+
 async def test_terminal_poll_releases_lane_for_next_job(
     store: JobStore,
     runtime_request: JobRequest,

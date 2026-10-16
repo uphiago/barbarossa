@@ -35,13 +35,17 @@ github_token_file="${GH_TOKEN_FILE:-/run/barbarossa-secrets/github_token}"
 codex_model="${BARBAROSSA_CODEX_MODEL:?BARBAROSSA_CODEX_MODEL is required}"
 codex_reasoning="${BARBAROSSA_CODEX_REASONING_EFFORT:?BARBAROSSA_CODEX_REASONING_EFFORT is required}"
 codex_subagents="${BARBAROSSA_CODEX_MAX_SUBAGENTS:?BARBAROSSA_CODEX_MAX_SUBAGENTS is required}"
+opencode_model="${BARBAROSSA_OPENCODE_MODEL:?BARBAROSSA_OPENCODE_MODEL is required}"
+opencode_variant="${BARBAROSSA_OPENCODE_VARIANT:?BARBAROSSA_OPENCODE_VARIANT is required}"
 
 for value in \
   "$auth_target" \
   "$github_token_file" \
   "$codex_model" \
   "$codex_reasoning" \
-  "$codex_subagents"; do
+  "$codex_subagents" \
+  "$opencode_model" \
+  "$opencode_variant"; do
   case "$value" in
     "" | *[!A-Za-z0-9._:/+-]*)
       printf 'invalid Forge session setting\n' >&2
@@ -55,6 +59,8 @@ CODEX_AUTH_JSON_FILE=$auth_target \
 GH_TOKEN_FILE=$github_token_file \
 BARBAROSSA_CODEX_MODEL=$codex_model \
 BARBAROSSA_CODEX_REASONING_EFFORT=$codex_reasoning \
-BARBAROSSA_CODEX_MAX_SUBAGENTS=$codex_subagents"
+BARBAROSSA_CODEX_MAX_SUBAGENTS=$codex_subagents \
+BARBAROSSA_OPENCODE_MODEL=$opencode_model \
+BARBAROSSA_OPENCODE_VARIANT=$opencode_variant"
 
 exec /usr/local/bin/worker-entrypoint "$@" -o "$session_environment"

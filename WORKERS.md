@@ -1,30 +1,35 @@
 # Barbarossa Runtime Guide
 
-Barbarossa has three containers and three independent execution lanes:
+Barbarossa has three containers and four independent execution lanes:
 
 ```text
 Hermes
 ├── Forge / runtime
 ├── Forge / Codex
+├── Forge / OpenCode
 └── Recon
 ```
 
 ## Forge
 
-Forge is a non-root engineering environment. Its runtime and Codex lanes can
-run concurrently, but each lane admits one job at a time.
+Forge is a non-root engineering environment. Its runtime, Codex, and OpenCode
+lanes can run concurrently, but each lane admits one job at a time.
 
 | Capability | Lane | Use |
 | --- | --- | --- |
 | `runtime.execute` | runtime | Shell, builds, conversions, general tooling |
 | `media.file.inspect` | runtime | File type and MIME inspection |
 | `code.delegate` | codex | Repository engineering through Codex |
+| `code.opencode` | opencode | Multi-agent engineering on the free DeepSeek model |
 | `media.image.inspect` | codex | Read an image |
 | `media.image.generate` | codex | Generate an image with `$imagegen` |
 | `media.image.edit` | codex | Edit one staged image |
 
 The Codex model, reasoning effort, and internal subagent limit are supplied by
-the deployment profile.
+the deployment profile. The OpenCode lane runs an orchestrator that can fan out
+to up to ten parallel subagents (`explorer`, `implementer`, `tester`,
+`reviewer`) on OpenCode's anonymous free DeepSeek tier, so it needs no
+credentials.
 The outer Forge container is its sandbox boundary.
 
 ## Recon
