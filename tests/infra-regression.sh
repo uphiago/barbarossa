@@ -101,6 +101,20 @@ assert forge_environment["GMAIL_USER_FILE"] == (
 assert forge_environment["GMAIL_APP_PASSWORD_FILE"] == (
     "/run/barbarossa-secrets/gmail_app_password"
 )
+assert forge_environment["BARBAROSSA_OPENCODE_MODEL"] == (
+    "${BARBAROSSA_OPENCODE_MODEL:-opencode/deepseek-v4.1-flash-free}"
+)
+assert forge_environment["BARBAROSSA_OPENCODE_VARIANT"] == (
+    "${BARBAROSSA_OPENCODE_VARIANT:-high}"
+)
+assert any(
+    "./config/opencode:/usr/local/share/barbarossa/opencode:ro" in volume
+    for volume in services["forge"]["volumes"]
+)
+assert any(
+    "/opt/barbarossa/context/skills/barbarossa-opencode:ro" in volume
+    for volume in services["hermes"]["volumes"]
+)
 
 workflow_path = Path(".github/workflows/build-deploy.yml")
 workflow = yaml.safe_load(workflow_path.read_text())
@@ -187,6 +201,11 @@ grep -Fq 'home/forge/.local/bin' \
   config/codex/config.toml
 grep -Fq 'vercel@${VERCEL_VERSION}' containers/forge/Dockerfile
 grep -Fq 'supabase@${SUPABASE_VERSION}' containers/forge/Dockerfile
+grep -Fq 'OPENCODE_VERSION=2.0.31' containers/forge/Dockerfile
+grep -Fq '@opencode/cli@${OPENCODE_VERSION}' containers/forge/Dockerfile
+grep -Fq -e '--allow-scripts=@opencode/cli' containers/forge/Dockerfile
+grep -Fq 'opencode --version' containers/forge/Dockerfile
+grep -Fq 'config/opencode' containers/forge/Dockerfile
 grep -Fq 'astral-sh/uv/releases/download' containers/forge/Dockerfile
 grep -Fq 'sha256sum -c -' containers/forge/Dockerfile
 grep -Fq '"/run/barbarossa-secrets/$secret"' \
@@ -207,6 +226,14 @@ grep -Fq 'session_environment="SetEnv=\' \
   containers/forge/forge-entrypoint.sh
 grep -Fq 'BARBAROSSA_CODEX_MODEL=$codex_model' \
   containers/forge/forge-entrypoint.sh
+grep -Fq 'BARBAROSSA_OPENCODE_MODEL=$opencode_model' \
+  containers/forge/forge-entrypoint.sh
+grep -Fq 'BARBAROSSA_OPENCODE_VARIANT=$opencode_variant' \
+  containers/forge/forge-entrypoint.sh
+grep -Fq 'code_opencode' skills/hermes/barbarossa-opencode/SKILL.md
+grep -Fq 'code.opencode' scripts/smoke-remote.sh
+grep -Fq 'code.opencode' router/src/barbarossa_router/models.py
+grep -Fq 'stage_opencode_config' containers/shared/worker-rpc.py
 grep -Fq 'exec /usr/local/bin/worker-entrypoint "$@" -o "$session_environment"' \
   containers/forge/forge-entrypoint.sh
 grep -Fq 'router/dist/' .gitignore

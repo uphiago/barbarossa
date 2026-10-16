@@ -71,11 +71,13 @@ architectural limit:
 | Hermes delegation | Up to three child tasks, one level deep |
 | Forge runtime lane | One non-root shell, file, build, and conversion job |
 | Forge Codex lane | Codex GPT-5.6 Luna, high reasoning |
+| Forge OpenCode lane | OpenCode orchestrator on free DeepSeek `deepseek-v4.1-flash-free`; up to ten parallel subagents |
 | Codex delegation | Multi-agent enabled, one internal thread per session |
 | Recon lane | One authorized network job, direct or explicit Tor |
 
-Forge runtime and Forge Codex can run concurrently. Hermes may also parallelize
-independent orchestration across Forge and Recon. DeepSeek and Luna are example
+Forge runtime, Forge Codex, and Forge OpenCode can run concurrently. Hermes may
+also parallelize independent orchestration across Forge and Recon. DeepSeek and
+Luna are example
 defaults, not implementation requirements. Providers, models, reasoning,
 delegation, service resources, and credentials are selected through the
 deployment environment without changing source files.
@@ -137,6 +139,7 @@ different provider or model.
 | `runtime.execute` | Forge runtime lane |
 | `media.file.inspect` | Forge runtime lane |
 | `code.delegate` | Forge Codex lane |
+| `code.opencode` | Forge OpenCode lane (multi-agent) |
 | `media.image.inspect` | Forge Codex lane |
 | `media.image.generate` | Forge Codex lane |
 | `media.image.edit` | Forge Codex lane |
@@ -148,9 +151,15 @@ Codex is a capability inside Forge, not the orchestrator. It can analyze
 repositories, implement and review code, run tests, inspect or create images,
 and delegate internally when its configured policy permits it.
 
+OpenCode is a second in-Forge engineering capability. One `code.opencode` job
+runs an `orchestrator` agent that fans out to up to ten parallel subagents
+(`explorer`, `implementer`, `tester`, `reviewer`) on OpenCode's anonymous free
+DeepSeek tier, so it requires no additional credentials. The free tier is
+temporary; the Codex lane remains the fallback.
+
 When configured, the GitHub credential is injected as `GH_TOKEN` only into
-Codex and image jobs. It is not exposed to Hermes, Recon, or the Forge runtime
-lane.
+Codex, OpenCode, and image jobs. It is not exposed to Hermes, Recon, or the
+Forge runtime lane.
 
 ### Codex Profiles
 
@@ -172,6 +181,19 @@ question, and the `high` profiles for everything else.
 
 Profiles are an allowlist: unrecognized values are rejected. Omitting a profile
 uses the deployment default.
+
+### OpenCode Lane
+
+`code_opencode` runs the OpenCode CLI inside Forge on the free
+`opencode/deepseek-v4.1-flash-free` model. The deployment default is set with
+`BARBAROSSA_OPENCODE_MODEL`; each job may select `low`, `high` (default), or
+`max` through `opencode_variant` or `BARBAROSSA_OPENCODE_VARIANT`.
+
+One job runs an `orchestrator` agent that fans out to the `explorer`,
+`implementer`, `tester`, and `reviewer` subagents, up to ten in parallel, and
+writes the consolidated answer to `outputs/final.md`. The lane needs no
+credentials; the free tier is temporary, so keep `code_delegate` as the
+fallback.
 
 ## Security Boundaries
 
@@ -301,6 +323,7 @@ The smoke test exercises:
 
 - Forge runtime execution;
 - Codex delegation and one internal subagent;
+- OpenCode delegation and one explorer subagent;
 - image inspection and generation;
 - direct HTTP and explicit Tor;
 - non-root worker identities;

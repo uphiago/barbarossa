@@ -28,9 +28,12 @@ MAX_UPLOAD_ARCHIVE_BYTES = MAX_INPUT_BYTES + 1024 * 1024
 MAX_OUTPUT_BYTES = 64 * 1024 * 1024
 MAX_LOG_BYTES = 200_000
 JOB_ID_RE = re.compile(
-    r"^job_(runtime|codex|image|recon)_[0-9A-HJKMNP-TV-Z]{26}$"
+    r"^job_(runtime|codex|opencode|image|recon)_[0-9A-HJKMNP-TV-Z]{26}$"
 )
 SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+# OpenCode V2 keeps its managed config under XDG_CONFIG_HOME; the image ships a
+# read-only copy that each OpenCode job stages into its own scratch.
+OPENCODE_SHARE = Path("/usr/local/share/barbarossa/opencode")
 CODEX_PROFILES = {
     "fast": ("gpt-5.6-luna", "high"),
     "balanced": ("gpt-5.6-terra", "high"),
@@ -45,6 +48,7 @@ CAPABILITY_LANES = {
     "runtime.execute": "runtime",
     "media.file.inspect": "runtime",
     "code.delegate": "codex",
+    "code.opencode": "opencode",
     "media.image.inspect": "codex",
     "media.image.generate": "codex",
     "media.image.edit": "codex",
@@ -215,6 +219,8 @@ def supervisor_environment() -> dict[str, str]:
         "BARBAROSSA_CODEX_MODEL",
         "BARBAROSSA_CODEX_REASONING_EFFORT",
         "BARBAROSSA_CODEX_MAX_SUBAGENTS",
+        "BARBAROSSA_OPENCODE_MODEL",
+        "BARBAROSSA_OPENCODE_VARIANT",
     ):
         value = os.environ.get(variable)
         if value:
@@ -275,6 +281,33 @@ def codex_command(request: dict[str, Any]) -> list[str]:
         f'model_reasoning_effort="{reasoning}"',
         "--config",
         f"agents.max_concurrent_threads_per_session={max_subagents}",
+    ]
+
+
+OPENCODE_VARIANTS = {"low", "high", "max"}
+
+
+def opencode_command(request: dict[str, Any]) -> list[str]:
+    model = os.environ.get(
+        "BARBAROSSA_OPENCODE_MODEL",
+        "opencode/deepseek-v4.1-flash-free",
+    ).strip()
+    variant = request.get("opencode_variant")
+    if variant is None:
+        variant = os.environ.get("BARBAROSSA_OPENCODE_VARIANT", "high").strip()
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}", model):
+        raise ValueError("BARBAROSSA_OPENCODE_MODEL is invalid")
+    if variant not in OPENCODE_VARIANTS:
+        raise ValueError("opencode variant is invalid")
+    return [
+        "opencode",
+        "run",
+        "--standalone",
+        "--auto",
+        "--agent",
+        "orchestrator",
+        "--model",
+        f"{model}#{variant}",
     ]
 
 
@@ -420,6 +453,8 @@ def build_argv(job: JobPaths, request: dict[str, Any]) -> list[str]:
             str(job.root),
             require_text(request, "prompt"),
         ]
+    if capability == "code.opencode":
+        return opencode_command(request) + [require_text(request, "prompt")]
     if capability in {"media.image.inspect", "media.image.edit"}:
         path = single_input(job, request)
         prompt = require_text(request, "prompt")
@@ -615,6 +650,10 @@ def artifact_names(job: JobPaths) -> list[str]:
     return artifacts
 
 
+def stage_opencode_config(config_home: Path) -> None:
+    shutil.copytree(OPENCODE_SHARE, config_home / "opencode")
+
+
 def run_job(job_id: str) -> int:
     job = workspace(WORKSPACE_ROOT, job_id)
     request = validate_request(load_json(job.request))
@@ -666,6 +705,16 @@ def run_job(job_id: str) -> int:
                     "XDG_CACHE_HOME": str(Path(scratch) / "cache"),
                     "XDG_CONFIG_HOME": str(config_home),
                 })
+                if request["capability"] == "code.opencode":
+                    # OpenCode is hermetic per job: stage its managed config
+                    # and keep session state out of the persistent home volume.
+                    stage_opencode_config(config_home)
+                    data_home = Path(scratch) / "data"
+                    state_home = Path(scratch) / "state"
+                    data_home.mkdir(parents=True, exist_ok=True)
+                    state_home.mkdir(parents=True, exist_ok=True)
+                    environment["XDG_DATA_HOME"] = str(data_home)
+                    environment["XDG_STATE_HOME"] = str(state_home)
                 child = subprocess.Popen(
                     argv,
                     cwd=job.root,

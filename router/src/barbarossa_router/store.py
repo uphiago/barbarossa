@@ -32,6 +32,8 @@ def _job_kind(request: JobRequest) -> str:
         return "image"
     if request.capability == "code.delegate":
         return "codex"
+    if request.capability == "code.opencode":
+        return "opencode"
     if request.capability.startswith("network."):
         return "recon"
     return "runtime"

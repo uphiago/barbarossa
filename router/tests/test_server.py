@@ -99,6 +99,28 @@ async def test_code_delegate_passes_an_approved_codex_profile(
     assert service.requests[-1].codex_profile == "deep"
 
 
+async def test_code_opencode_passes_a_variant(
+    service: FakeService,
+) -> None:
+    async with Client(
+        create_server(service),
+        raise_exceptions=True,
+    ) as client:
+        result = await client.call_tool(
+            "code_opencode",
+            {
+                "prompt": "Parallel review",
+                "opencode_variant": "max",
+            },
+        )
+
+    assert result.is_error is False
+    request = service.requests[-1]
+    assert request.capability == "code.opencode"
+    assert request.lane == "opencode"
+    assert request.opencode_variant == "max"
+
+
 async def test_tor_is_explicit_and_routes_to_recon(
     service: FakeService,
 ) -> None:
@@ -167,6 +189,7 @@ async def test_server_exposes_only_approved_tools(
     assert {tool.name for tool in tools.tools} == {
         "runtime_execute",
         "code_delegate",
+        "code_opencode",
         "media_file_inspect",
         "media_image_inspect",
         "media_image_generate",

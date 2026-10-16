@@ -1,6 +1,7 @@
 FROM node:24-bookworm-slim@sha256:51b1100cc2a83d370c6a60952e3f2989c8a43159d0e38586e090f3b3326efefd
 
 ARG CODEX_VERSION=0.162.0
+ARG OPENCODE_VERSION=2.0.31
 ARG NPM_VERSION=12.2.0
 ARG VERCEL_VERSION=63.1.0
 ARG SUPABASE_VERSION=2.120.0
@@ -22,6 +23,12 @@ RUN curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/
 
 RUN npm install --global "npm@${NPM_VERSION}" \
     && npm install --global "@openai/codex@${CODEX_VERSION}" "vercel@${VERCEL_VERSION}" "supabase@${SUPABASE_VERSION}" \
+    && npm install --global --allow-scripts=@opencode/cli "@opencode/cli@${OPENCODE_VERSION}" \
+    && find /usr/local/lib/node_modules -type d \
+         \( -name cli-linux-x64-baseline -o -name cli-linux-x64-musl \
+            -o -name cli-linux-x64-baseline-musl \) \
+         -prune -exec rm -rf {} + \
+    && opencode --version \
     && npm cache clean --force
 
 # Install once in the image, outside /home/forge (a persistent volume).
@@ -51,6 +58,8 @@ COPY config/codex/config.toml \
 COPY skills/codex/barbarossa-artifacts/SKILL.md \
   /usr/local/share/barbarossa/codex/SKILL.md
 
+COPY config/opencode /usr/local/share/barbarossa/opencode
+
 RUN chmod 0755 \
       /usr/local/bin/barbarossa-worker \
       /usr/local/bin/worker-ssh-dispatch \
@@ -59,6 +68,8 @@ RUN chmod 0755 \
     && chmod 0644 \
       /usr/local/share/barbarossa/codex/config.toml \
       /usr/local/share/barbarossa/codex/SKILL.md \
+      /usr/local/share/barbarossa/opencode/opencode.jsonc \
+      /usr/local/share/barbarossa/opencode/agents/*.md \
     && rm -f /etc/ssh/ssh_host_* \
     && ln -s /ssh-host-keys/ssh_host_ed25519_key \
       /etc/ssh/ssh_host_ed25519_key \

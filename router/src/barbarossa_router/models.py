@@ -6,6 +6,7 @@ from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, model_validator
 Capability = Literal[
     "runtime.execute",
     "code.delegate",
+    "code.opencode",
     "media.file.inspect",
     "media.image.inspect",
     "media.image.generate",
@@ -24,18 +25,20 @@ JobState = Literal[
     "cancelled",
     "interrupted",
 ]
-Lane = Literal["runtime", "codex", "recon"]
+Lane = Literal["runtime", "codex", "opencode", "recon"]
 Route = Literal["direct", "tor"]
 Worker = Literal["forge", "recon"]
 CodexProfile = Literal["fast", "balanced", "deep", "astra"]
+OpencodeVariant = Literal["low", "high", "max"]
 
 JOB_ID_PATTERN = (
-    r"^job_(runtime|codex|image|recon)_[0-9A-HJKMNP-TV-Z]{26}$"
+    r"^job_(runtime|codex|opencode|image|recon)_[0-9A-HJKMNP-TV-Z]{26}$"
 )
 
 CAPABILITY_POLICY: dict[Capability, tuple[Worker, Lane, int]] = {
     "runtime.execute": ("forge", "runtime", 900),
     "code.delegate": ("forge", "codex", 2700),
+    "code.opencode": ("forge", "opencode", 2700),
     "media.file.inspect": ("forge", "runtime", 900),
     "media.image.inspect": ("forge", "codex", 1200),
     "media.image.generate": ("forge", "codex", 1200),
@@ -59,6 +62,7 @@ class JobRequest(BaseModel):
     timeout_seconds: int | None = Field(default=None, ge=1, le=7200)
     input_paths: list[str] = Field(default_factory=list, max_length=8)
     codex_profile: CodexProfile | None = None
+    opencode_variant: OpencodeVariant | None = None
     to: str | None = Field(default=None, max_length=512)
     subject: str | None = Field(default=None, max_length=1024)
     body: str | None = Field(default=None, max_length=65_536)
@@ -112,10 +116,13 @@ class JobRequest(BaseModel):
             raise ValueError("this capability requires exactly one input file")
         if self.capability == "media.image.generate" and self.input_paths:
             raise ValueError("media.image.generate does not accept an input file")
-        if self.codex_profile and not self.capability.startswith(
-            ("code.", "media.image.")
+        if self.codex_profile and not (
+            self.capability == "code.delegate"
+            or self.capability.startswith("media.image.")
         ):
             raise ValueError("Codex profiles are valid only for Codex capabilities")
+        if self.opencode_variant and self.capability != "code.opencode":
+            raise ValueError("OpenCode variants are valid only for code.opencode")
         return self
 
 

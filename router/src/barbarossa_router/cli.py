@@ -48,6 +48,7 @@ def parser() -> argparse.ArgumentParser:
     submit.add_argument("--url")
     submit.add_argument("--input-path", action="append", default=[])
     submit.add_argument("--timeout-seconds", type=int)
+    submit.add_argument("--opencode-variant")
     submit.add_argument("--wait", action="store_true")
     return root
 
@@ -81,6 +82,7 @@ async def run_operator_command(args: argparse.Namespace) -> int:
         url=args.url,
         input_paths=args.input_path,
         timeout_seconds=args.timeout_seconds,
+        opencode_variant=args.opencode_variant,
     )
     await service.start()
     try:

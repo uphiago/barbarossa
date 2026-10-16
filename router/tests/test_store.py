@@ -48,6 +48,16 @@ async def test_claim_next_serializes_lane_across_store_instances(
     assert (await store.get(second.job_id)).status == "queued"
 
 
+async def test_store_creates_opencode_jobs_in_their_lane(
+    store: JobStore,
+    opencode_request: JobRequest,
+) -> None:
+    created = await store.create(opencode_request)
+
+    assert created.job_id.startswith("job_opencode_")
+    assert created.lane == "opencode"
+
+
 async def test_store_lists_running_jobs_for_remote_reconciliation(
     store: JobStore,
     runtime_request: JobRequest,

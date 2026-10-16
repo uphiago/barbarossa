@@ -61,6 +61,13 @@ submit_and_assert_log code.delegate BARBAROSSA_CODEX_OK \
 submit_and_assert_log code.delegate BARBAROSSA_SUBAGENT_OK \
   --prompt 'Spawn exactly one subagent to return BARBAROSSA_SUBAGENT_OK, then reply with that exact text.'
 
+submit_and_assert_log code.opencode BARBAROSSA_OPENCODE_OK \
+  --timeout-seconds 900 \
+  --prompt 'Reply with exactly BARBAROSSA_OPENCODE_OK.'
+submit_and_assert_log code.opencode BARBAROSSA_OPENCODE_SUBAGENT_OK \
+  --timeout-seconds 900 \
+  --prompt 'Launch exactly one explorer subagent to return BARBAROSSA_OPENCODE_SUBAGENT_OK, then reply with that exact text.'
+
 fixture="/opt/data/barbarossa-transfer/smoke.png"
 compose exec -T --user hermes hermes sh -c \
   'install -d -m 0700 /opt/data/barbarossa-transfer &&

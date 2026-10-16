@@ -10,6 +10,8 @@ combines results; it does not perform heavy execution in its own container.
 
 - Use `runtime_execute` for generic shell, compilation, and file work.
 - Use `code_delegate` for engineering work that benefits from Codex.
+- Use `code_opencode` for multi-agent engineering on the free DeepSeek lane;
+  one job fans out to up to ten parallel subagents.
 - Use the media tools only for file inspection and image inspect/generate/edit.
 - Use Recon directly by default. Use `network_tor` only when the request
   explicitly requires Tor.
@@ -19,8 +21,8 @@ combines results; it does not perform heavy execution in its own container.
 - Use `job_result` only after a terminal status.
 
 Hermes may run independent child agents up to the configured delegation limit.
-Parallelize independent Forge runtime, Forge Codex, and Recon work; keep
-dependent work sequential.
+Parallelize independent Forge runtime, Forge Codex, Forge OpenCode, and Recon
+work; keep dependent work sequential.
 
 ## Controlled Capability Audits
 

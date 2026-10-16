@@ -60,6 +60,24 @@ def create_server(service: RouterService) -> MCPServer:
         )
 
     @mcp.tool()
+    async def code_opencode(
+        prompt: str,
+        input_paths: list[str] | None = None,
+        timeout_seconds: int = 2700,
+        opencode_variant: str | None = None,
+    ) -> JobStatus:
+        """Queue a multi-agent engineering job on the Forge OpenCode lane."""
+        return await service.submit(
+            JobRequest(
+                capability="code.opencode",
+                prompt=prompt,
+                input_paths=input_paths or [],
+                timeout_seconds=timeout_seconds,
+                opencode_variant=opencode_variant,
+            )
+        )
+
+    @mcp.tool()
     async def media_file_inspect(
         input_path: str,
         timeout_seconds: int = 900,

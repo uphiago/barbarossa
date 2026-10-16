@@ -37,6 +37,8 @@ services:
       BARBAROSSA_CODEX_MODEL: ${BARBAROSSA_CODEX_MODEL:-gpt-5.6-luna}
       BARBAROSSA_CODEX_REASONING_EFFORT: ${BARBAROSSA_CODEX_REASONING_EFFORT:-high}
       BARBAROSSA_CODEX_MAX_SUBAGENTS: ${BARBAROSSA_CODEX_MAX_SUBAGENTS:-1}
+      BARBAROSSA_OPENCODE_MODEL: ${BARBAROSSA_OPENCODE_MODEL:-opencode/deepseek-v4.1-flash-free}
+      BARBAROSSA_OPENCODE_VARIANT: ${BARBAROSSA_OPENCODE_VARIANT:-high}
     secrets:
       - source: worker_authorized_keys
         target: worker_authorized_keys
@@ -55,6 +57,7 @@ services:
       - forge-host-keys:/ssh-host-keys
       - ./config/codex/config.toml:/usr/local/share/barbarossa/codex/config.toml:ro
       - ./skills/codex/barbarossa-artifacts/SKILL.md:/usr/local/share/barbarossa/codex/SKILL.md:ro
+      - ./config/opencode:/usr/local/share/barbarossa/opencode:ro
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=128m
       - /run:rw,nosuid,nodev,size=16m
@@ -172,6 +175,7 @@ services:
       - ./skills/hermes/barbarossa-codex:/opt/barbarossa/context/skills/barbarossa-codex:ro
       - ./skills/hermes/barbarossa-network:/opt/barbarossa/context/skills/barbarossa-network:ro
       - ./skills/hermes/barbarossa-gmail:/opt/barbarossa/context/skills/barbarossa-gmail:ro
+      - ./skills/hermes/barbarossa-opencode:/opt/barbarossa/context/skills/barbarossa-opencode:ro
     networks:
       - hermes-forge
       - hermes-recon
