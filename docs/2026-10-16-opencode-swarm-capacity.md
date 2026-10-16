@@ -56,9 +56,13 @@ Evidência (job dirs retidos em `/workspace/jobs`): N=10
    orquestrador ("up to ten"); em N=64 o modelo explicitamente organizou 7
    ondas de 10/10/10/10/10/10/4. Em N≥32 houve lançamento escalonado (spread
    de início de ~100–125 s entre shards).
-2. **Provider: nenhum rate-limit observado.** Zero HTTP 429/degradação do free
-   tier em todas as rodadas (até 64 subagentes + orquestrador por job; o único
-   "429" nos logs era dígito de timestamp).
+2. **Provider: sem rate-limit durante o teste; throttling depois.** Zero HTTP
+   429 nas rodadas (até 64 subagentes + orquestrador por job; o único "429" nos
+   logs era dígito de timestamp). Porém ~50 min após a janela (18:55–18:59Z),
+   smokes `code.opencode` passaram a falhar em ~7 s com
+   `Error: Rate limit exceeded. Please try again later.` — o free tier throttla
+   após uso intenso. Tratar como transitório: aguardar alguns minutos e
+   retentar, e/ou cair para `code_delegate`.
 3. **A máquina nunca foi o gargalo.** Pior momento do Forge: ~666 MiB de
    1408 MiB e 130 de 384 PIDs; host nunca abaixo de 1.87 GiB livres; zero OOM
    (kernel e container), zero restart, swap estável.
