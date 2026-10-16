@@ -5,9 +5,10 @@
 # $BARBAROSSA_RUNTIME_DIR/rollback plus barbarossa-rollback-* image tags of the
 # release that was replaced. Older releases accumulate and can fill the host
 # disk (see docs/2026-10-16-deploy-disk-incident.md). This tool keeps the
-# newest rollback directory and removes older directories together with the
-# image tags that only they reference. Running containers, tags referenced by
-# the newest directory, and non-barbarossa images are never touched.
+# newest rollback directory and removes older directories together with their
+# image tags; a tag shared with the retained release is dropped as well, while
+# its image survives through the retained tags. Running containers, the
+# retained release's own tags, and non-barbarossa images are never touched.
 #
 # Dry-run by default; pass --apply to execute. Refuses to run while a
 # deployment lock exists.
@@ -60,13 +61,20 @@ for dir in $stale; do
   for ref in $(refs_of "$dir"); do
     id="$("$docker" image inspect --format '{{.Id}}' "$ref" 2>/dev/null || true)"
     [ -n "$id" ] || continue
-    case " $keep_ids " in *" $id "*) continue ;; esac
-    for tag in $("$docker" images --no-trunc --format '{{.ID}} {{.Repository}}:{{.Tag}}' |
-      awk -v id="$id" '$1 == id { print $2 }'); do
-      case "$tag" in
-        barbarossa-rollback-*|ghcr.io/uphiago/barbarossa-*) plan="$plan $tag" ;;
-      esac
-    done
+    case " $keep_ids " in
+      *" $id "*)
+        # Image shared with the retained release: drop only the stale tag.
+        plan="$plan $ref"
+        ;;
+      *)
+        for tag in $("$docker" images --no-trunc --format '{{.ID}} {{.Repository}}:{{.Tag}}' |
+          awk -v id="$id" '$1 == id { print $2 }'); do
+          case "$tag" in
+            barbarossa-rollback-*|ghcr.io/uphiago/barbarossa-*) plan="$plan $tag" ;;
+          esac
+        done
+        ;;
+    esac
   done
 done
 
@@ -80,9 +88,9 @@ for dir in $stale; do
   printf 'stale rollback release:    %s\n' "$dir"
 done
 if [ -n "$unique" ]; then
-  printf 'image tags only held by stale releases:%s\n' "$unique"
+  printf 'stale release tags to remove:%s\n' "$unique"
 else
-  printf 'no stale image tags to remove\n'
+  printf 'no stale tags to remove\n'
 fi
 
 if [ "$apply" -eq 1 ] && [ -n "$unique" ]; then

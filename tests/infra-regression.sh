@@ -323,8 +323,8 @@ fi
     "$drill/runtime/rollback/release.BBB" "$drill/runtime/rollback/release.CCC"
   for release in AAA:2026-10-01 BBB:2026-10-08 CCC:2026-10-16; do
     name="${release%:*}"
-    printf 'services:\n  forge:\n    image: barbarossa-rollback-forge:release.%s\n' \
-      "$name" > "$drill/runtime/rollback/release.$name/images.yml"
+    printf 'services:\n  forge:\n    image: barbarossa-rollback-forge:release.%s\n  hermes:\n    image: barbarossa-rollback-hermes:release.%s\n' \
+      "$name" "$name" > "$drill/runtime/rollback/release.$name/images.yml"
     touch -d "${release#*:} 10:00" "$drill/runtime/rollback/release.$name"
   done
   cat > "$drill/bin/docker" <<'FAKE_DOCKER'
@@ -356,6 +356,9 @@ sha256:aaa ghcr.io/uphiago/barbarossa-forge:oldsha
 sha256:bbb barbarossa-rollback-forge:release.BBB
 sha256:ccc barbarossa-rollback-forge:release.CCC
 sha256:ccc unrelated-org/img:keep
+sha256:ccc barbarossa-rollback-hermes:release.AAA
+sha256:ccc barbarossa-rollback-hermes:release.BBB
+sha256:ccc barbarossa-rollback-hermes:release.CCC
 FAKE_STATE
   touch "$drill/runtime/.deploy.lock"
   if FAKE_STATE="$drill/state" DOCKER="$drill/bin/docker" \
